@@ -1,10 +1,12 @@
 # tbot_type_generator
 
-Generates Telegram types for TBot project
+Generates Telegram types for TBot project.
+
+Uses specs from `PaulSonOfLars/telegram-bot-api-spec` repository.
 
 ## Usage
 
-Clone this repository and install `requirements.txt` via Python virtual env or whatever you want. After this action run main script:
+Clone this repository and install `requirements.txt` via Python virtual env or anywhere you want. After this action run main script:
 
 ```bash
 python main.py
