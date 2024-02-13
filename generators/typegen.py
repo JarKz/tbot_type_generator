@@ -1,6 +1,8 @@
 from functools import reduce
 from typing import cast
 
+from generators.imports import Imports
+
 
 def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
     ARRAY_OF_LITERAL = "Array of "
@@ -28,7 +30,7 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
         for _ in range(level):
             original_type = f"List<{original_type}>"
 
-        return (original_type, {"import java.util.List;"})
+        return (original_type, {Imports.List.value})
 
     if len(original_types) == 1:
         original_type = original_types[0]
@@ -46,6 +48,10 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
         return ("InputFile", set())
 
     raise Exception("Unknown type!")
+
+
+def is_primitive(type_name: str) -> bool:
+    return type_name in ["int", "float", "long", "double", "char", "byte", "boolean", "short"]
 
 
 def to_camel_case(field_name: str) -> str:
@@ -89,13 +95,12 @@ class Field:
 
         if self.camel_cased_name != self.name:
             self.annotations.add(f"@SerializedName(\"{self.name}\")")
-            self.imports.add(
-                "import com.google.gson.annotations.SerializedName;")
+            self.imports.add(Imports.SerializedName.value)
 
         self.required = field["required"]
         if self.required:
             self.annotations.add("@NotNull")
-            self.imports.add("import jakarta.validation.contraints.NotNull;")
+            self.imports.add(Imports.NotNull.value)
 
         self.type_, imports = map_type(field["types"], self.required)
         self.imports = self.imports.union(imports)
@@ -151,15 +156,128 @@ class TypeGenerator:
 
         self.fields = fields
 
+    def make_method_equals(self, ident_spaces: int) -> tuple[list[str], str | None]:
+        ident = " " * ident_spaces
+        lines = [
+            f"{ident}@Override\n",
+            f"{ident}public final boolean equals(Object obj) {{\n"
+            f"{ident * 2}if (this == obj) return true;\n"
+            f"{ident * 2}if (!(obj instanceof {self.name} other)) return false;\n"
+        ]
+
+        if not self.fields:
+            lines.append(f"{ident * 2}return true;\n")
+            lines.append(f"{ident}}}\n")
+            return (lines, None)
+
+        exists_objects = False
+        last = len(self.fields) - 1
+        for i, field in enumerate(self.fields):
+            line = ""
+            if is_primitive(field.type_):
+                line = f"{field.camel_cased_name} == other.{field.camel_cased_name}"
+            else:
+                line = f"Objects.equals({field.camel_cased_name}, other.{field.camel_cased_name})"
+                exists_objects = True
+
+            if i == 0:
+                line = f"{ident * 2}return {line}"
+            else:
+                line = f"{ident * 4}&& {line}"
+
+            if i == last:
+                line += ";\n"
+            else:
+                line += "\n"
+
+            lines.append(line)
+
+        lines.append(f"{ident}}}\n")
+
+        return (lines, Imports.Objects.value if exists_objects else None)
+
+    def make_method_hash_code(self, ident_spaces: int) -> tuple[list[str], str | None]:
+        ident = " " * ident_spaces
+        lines = [
+            f"{ident}@Override\n",
+            f"{ident}public final int hashCode() {{\n"
+        ]
+
+        if not self.fields:
+            lines.extend([
+                f"{ident * 2}int prime = 31;\n",
+                f"{ident * 2}return prime;\n",
+                f"{ident}}}\n",
+            ])
+            return (lines, None)
+
+        fields = ", ".join(
+            map(lambda field: field.camel_cased_name, self.fields))
+        lines.append(f"{ident * 2} return Objects.hash({fields});\n")
+        lines.append(f"{ident}}}\n")
+
+        return (lines, Imports.Objects.value)
+
+    def make_method_to_string(self, ident_spaces: int) -> list[str]:
+        ident = " " * ident_spaces
+        lines = [
+            f"{ident}@Override\n",
+            f"{ident}public final String toString() {{\n"
+        ]
+
+        if not self.fields:
+            lines.extend([
+                f"{ident * 2}return \"{self.name}[]\";\n",
+                f"{ident}}}\n",
+            ])
+            return lines
+
+        lines.extend([
+            f"{ident * 2}var builder = new StringBuilder();\n",
+            f"{ident * 2}builder\n"
+        ])
+        name = f"{self.name}["
+
+        for i, field in enumerate(self.fields):
+            if i == 0:
+                name += f"{field.camel_cased_name}="
+            else:
+                name = f", {field.camel_cased_name}="
+            lines.append(f"{ident * 4}.append(\"{name}\")\n")
+            lines.append(f"{ident * 4}.append({field.camel_cased_name})\n")
+
+        lines.extend([
+            f"{ident * 4}.append(\"]\");\n",
+            f"{ident * 2}return builder.toString();\n",
+            f"{ident}}}\n",
+        ])
+
+        return lines
+
     def to_text(self, package_name: str) -> list[str]:
         lines = [
             f"package {package_name}.{self.name};\n"
         ]
         empty_line = "\n"
 
+        ident_spaces = 2
+
+        used_imports = set()
+        equals_method, import_objects = self.make_method_equals(ident_spaces)
+        if import_objects is not None:
+            used_imports.add(import_objects)
+
+        hash_code_method, import_objects = self.make_method_hash_code(
+            ident_spaces)
+        if import_objects is not None:
+            used_imports.add(import_objects)
+
+        to_string_method = self.make_method_to_string(
+            ident_spaces)
+
         all_imports = map(lambda field: field.imports, self.fields)
         used_imports = reduce(
-            lambda left, right: left.union(right), all_imports, set())
+            lambda left, right: left.union(right), all_imports, used_imports)
         if len(used_imports) > 0:
             lines.append(empty_line)
             for used_import in used_imports:
@@ -168,9 +286,7 @@ class TypeGenerator:
         for _ in range(2):
             lines.append(empty_line)
 
-        ident_spaces = 2
-
-        lines.append(generate_description(self.description, 0))
+        lines.append(generate_description(self.description, ident_spaces=0))
 
         if not self.is_subtype:
             subtypes = ", ".join(cast(list[str], self.subtypes))
@@ -186,9 +302,18 @@ class TypeGenerator:
         lines.append(classname)
         lines.append(empty_line)
 
-        for field in self.fields:
+        last = len(self.fields) - 1
+        for i, field in enumerate(self.fields):
             lines.extend(field.to_text(ident_spaces))
-            lines.append(empty_line)
+            if i != last:
+                lines.append(empty_line)
+
+        lines.append(empty_line)
+        lines.extend(equals_method)
+        lines.append(empty_line)
+        lines.extend(hash_code_method)
+        lines.append(empty_line)
+        lines.extend(to_string_method)
 
         lines.append("}")
 
