@@ -17,6 +17,23 @@ def download_specs(output_file: str):
         lines = map(lambda x: x + "\n", lines)
         file.writelines(lines)
 
+def generate_types(output_dir: str, package_basename: str, api_specs: dict):
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    typenames = api_specs["types"].keys()
+    telegram_types = map(
+        lambda typename: api_specs["types"][typename], typenames)
+
+    for telegram_type in telegram_types:
+        filename = output_dir + telegram_type["name"] + ".java"
+        typegen = TypeGenerator(telegram_type)
+
+        with open(filename, "w") as java_file:
+            java_file.writelines(typegen.to_text(
+                package_name=package_basename + ".types"))
+
 
 if __name__ == "__main__":
     api_json_file = "api.json"
@@ -29,16 +46,5 @@ if __name__ == "__main__":
 
     with open(api_json_file, "r") as file:
         api_specs = json.load(file)
-
-        typenames = api_specs["types"].keys()
-        telegram_types = map(
-            lambda typename: api_specs["types"][typename], typenames)
-
-        for telegram_type in telegram_types:
-            filename = types_output_directory + telegram_type["name"] + ".java"
-            typegen = TypeGenerator(telegram_type)
-
-            with open(filename, "w") as java_file:
-                java_file.writelines(typegen.to_text(
-                    package_name="jarkz.tbot.types"))
+        generate_types(output_dir=types_output_directory, package_basename="jarkz.tbot", api_specs=api_specs)
 
