@@ -151,7 +151,7 @@ class TypeGenerator:
         if len(used_imports) > 0:
             lines.append(empty_line)
             for used_import in used_imports:
-                lines.append(used_import)
+                lines.append(used_import + "\n")
 
         for _ in range(2):
             lines.append(empty_line)
