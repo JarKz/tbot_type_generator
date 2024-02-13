@@ -2,38 +2,48 @@ from functools import reduce
 from typing import cast
 
 
-def map_type(original_type: str, required: bool) -> str:
+def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
+    ARRAY_OF_LITERAL = "Array of "
     return_value = {
         True: {
             "True": "boolean",
             "Float number": "float",
             "Integer": "int",
-            "String": "String",
             "Boolean": "boolean",
             "Float": "float"
         },
         False: {
             "True": "Boolean",
             "Float number": "Float",
-            "Integer": "Integer",
-            "String": "String",
-            "Boolean": "Boolean",
-            "Float": "Float"
         }
     }
 
-    if len(original_type) == 1:
-        if original_type[0] in return_value[required]:
-            return return_value[required][original_type[0]]
-        else:
-            if original_type[0].startswith("Array"):
-                raise Exception("Need to implement Array's for this type!")
-            return original_type[0]
+    def map_array_type(original_type: str) -> tuple[str, set[str]]:
+        level = 0
+        while original_type.startswith(ARRAY_OF_LITERAL):
+            level += 1
+            original_type = original_type[len(ARRAY_OF_LITERAL):]
 
-    if original_type == ["Integer", "String"]:
-        return "String"
-    elif original_type == ["InputFile", "String"]:
-        return "InputFile"
+        original_type = return_value[False][original_type] if original_type in return_value[False] else original_type
+        for _ in range(level):
+            original_type = f"List<{original_type}>"
+
+        return (original_type, {"import java.util.List;"})
+
+    if len(original_types) == 1:
+        original_type = original_types[0]
+
+        if original_type in return_value[required]:
+            return (return_value[required][original_type], set())
+        if original_type.startswith(ARRAY_OF_LITERAL):
+            return map_array_type(original_type)
+
+        return (original_type, set())
+
+    if original_types == ["Integer", "String"]:
+        return ("String", set())
+    if original_types == ["InputFile", "String"]:
+        return ("InputFile", set())
 
     raise Exception("Unknown type!")
 
@@ -87,7 +97,8 @@ class Field:
             self.annotations.add("@NotNull")
             self.imports.add("import jakarta.validation.contraints.NotNull;")
 
-        self.type_ = map_type(field["types"], self.required)
+        self.type_, imports = map_type(field["types"], self.required)
+        self.imports = self.imports.union(imports)
 
     def to_text(self, ident_spaces: int) -> list[str]:
         ident = " " * ident_spaces
@@ -128,6 +139,7 @@ class TypeGenerator:
                 if len(self.subtype_of) > 1:
                     raise Exception(
                         "Expected one subtype_of, but given many subtype_of!")
+                self.subtype_of = self.subtype_of[0]
         else:
             self.is_subtype = False
 
