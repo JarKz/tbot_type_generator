@@ -256,7 +256,7 @@ class TypeGenerator:
 
     def to_text(self, package_name: str) -> list[str]:
         lines = [
-            f"package {package_name}.{self.name};\n"
+            f"package {package_name};\n"
         ]
         empty_line = "\n"
 
