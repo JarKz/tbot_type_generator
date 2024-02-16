@@ -175,7 +175,10 @@ class TypeGenerator:
         for i, field in enumerate(self.fields):
             line = ""
             if is_primitive(field.type_):
-                line = f"{field.camel_cased_name} == other.{field.camel_cased_name}"
+                if field.type_ == "float":
+                    line = f"Float.floatToIntBits({field.camel_cased_name}) == Float.floatToIntBits(other.{field.camel_cased_name})"
+                else:
+                    line = f"{field.camel_cased_name} == other.{field.camel_cased_name}"
             else:
                 line = f"Objects.equals({field.camel_cased_name}, other.{field.camel_cased_name})"
                 exists_objects = True
