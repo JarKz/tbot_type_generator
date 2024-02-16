@@ -5,6 +5,9 @@ import json
 from generators.typegen import TypeGenerator
 
 SPECS_PATH = "https://github.com/PaulSonOfLars/telegram-bot-api-spec/blob/main/api.json"
+IGNORE_TYPES = [
+    "InputFile"
+]
 
 
 def download_specs(output_file: str):
@@ -27,6 +30,9 @@ def generate_types(output_dir: str, package_basename: str, api_specs: dict):
         lambda typename: api_specs["types"][typename], typenames)
 
     for telegram_type in telegram_types:
+        if telegram_type["name"] in IGNORE_TYPES:
+            continue
+
         filename = output_dir + telegram_type["name"] + ".java"
         typegen = TypeGenerator(telegram_type)
 
