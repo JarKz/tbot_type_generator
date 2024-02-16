@@ -83,23 +83,23 @@ class Field:
     type_: str
     required: bool
     description: str
-    annotations: set[str]
+    annotations: list[str]
     imports: set[str]
 
     def parse(self, field: dict):
         self.name = field["name"]
         self.description = field["description"]
         self.camel_cased_name = to_camel_case(self.name)
-        self.annotations = set()
+        self.annotations = [] 
         self.imports = set()
 
         if self.camel_cased_name != self.name:
-            self.annotations.add(f"@SerializedName(\"{self.name}\")")
+            self.annotations.append(f"@SerializedName(\"{self.name}\")")
             self.imports.add(Imports.SerializedName.value)
 
         self.required = field["required"]
         if self.required:
-            self.annotations.add("@NotNull")
+            self.annotations.append("@NotNull")
             self.imports.add(Imports.NotNull.value)
 
         self.type_, imports = map_type(field["types"], self.required)
