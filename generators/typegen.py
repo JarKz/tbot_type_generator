@@ -93,14 +93,14 @@ class Field:
         self.annotations = [] 
         self.imports = set()
 
-        if self.camel_cased_name != self.name:
-            self.annotations.append(f"@SerializedName(\"{self.name}\")")
-            self.imports.add(Imports.SerializedName.value)
-
         self.required = field["required"]
         if self.required:
             self.annotations.append("@NotNull")
             self.imports.add(Imports.NotNull.value)
+
+        if self.camel_cased_name != self.name:
+            self.annotations.append(f"@SerializedName(\"{self.name}\")")
+            self.imports.add(Imports.SerializedName.value)
 
         self.type_, imports = map_type(field["types"], self.required)
         self.imports = self.imports.union(imports)
