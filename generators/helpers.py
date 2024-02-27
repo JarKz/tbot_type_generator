@@ -1,5 +1,6 @@
 from .imports import Imports
 
+
 def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
     ARRAY_OF_LITERAL = "Array of "
     return_value = {
@@ -43,7 +44,7 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
     if original_types == ["InputFile", "String"]:
         return ("InputFile", set())
 
-    raise Exception("Unknown type!")
+    raise Exception(f"Unknown type: {original_types}!")
 
 
 def is_primitive(type_name: str) -> bool:
@@ -59,6 +60,11 @@ def to_camel_case(field_name: str) -> str:
     for word in words[1:]:
         new_name += word[0].upper() + word[1:]
     return new_name
+
+
+def to_pascal_case(field_name: str) -> str:
+    words = field_name.split("_")
+    return "".join(map(lambda word: word[0].upper() + word[1:], words))
 
 
 def generate_description(phrases: list[str], ident_spaces: int) -> str:

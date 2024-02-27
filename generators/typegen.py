@@ -1,7 +1,18 @@
 from functools import reduce
 from typing import cast
+from copy import copy
+from enum import Enum
 
 from .helpers import *
+
+
+SPECIFIC_TYPES: dict[frozenset[str], str] = {}
+ADDITIONAL_TYPES = []
+
+
+class TypeClassification(Enum):
+    DataType = 0
+    MethodParameters = 1
 
 
 class Field:
@@ -12,6 +23,9 @@ class Field:
     description: str
     annotations: list[str]
     imports: set[str]
+
+    def __init__(self, field: dict) -> None:
+        self.parse(field)
 
     def parse(self, field: dict):
         self.name = field["name"]
@@ -54,10 +68,51 @@ class TypeGenerator:
     subtype_of: None | str
     subtypes: None | list[str]
 
-    def __init__(self, telegram_type: dict):
-        self.parse(telegram_type)
+    DEFAULT_TYPE_CLASSIFICATION = TypeClassification.DataType
+    type_classification: TypeClassification
 
-    def parse(self, telegram_type: dict):
+    def __init__(self, telegram_type: dict, type_classification: None | TypeClassification = None):
+        if type_classification is None:
+            self.parse(telegram_type, self.DEFAULT_TYPE_CLASSIFICATION)
+        else:
+            self.parse(telegram_type, type_classification)
+
+    def __parse_fields(self, raw_fields: list[dict]):
+        fields = []
+        match self.type_classification:
+            case TypeClassification.DataType:
+                fields = list(
+                    map(lambda raw_field: Field(raw_field), raw_fields))
+            case TypeClassification.MethodParameters:
+                for raw_field in raw_fields:
+                    types = frozenset(raw_field["types"])
+                    if types in SPECIFIC_TYPES:
+                        raw_field["types"] = [SPECIFIC_TYPES[types]]
+                    elif len(types) > 2:
+                        name = to_pascal_case(raw_field["name"])
+                        new_type = name
+                        data = {
+                            "name": name,
+                            "description": "",
+                            "subtypes": list(types),
+                        }
+                        if all(map(lambda typename: typename.startswith("Array of"), types)):
+                            new_type = "Array of " + name
+                            data["subtypes"] = list(
+                                map(lambda type_: type_[len("Array of "):], types))
+
+                        ADDITIONAL_TYPES.append(TypeGenerator(data))
+                        SPECIFIC_TYPES[types] = name
+
+                        raw_field["types"] = [new_type]
+
+                    fields.append(Field(raw_field))
+
+        self.fields = fields
+
+    def parse(self, telegram_type: dict, type_classification: TypeClassification):
+        self.type_classification = type_classification
+
         self.name = telegram_type["name"]
         self.description = telegram_type["description"]
 
@@ -75,13 +130,7 @@ class TypeGenerator:
         else:
             self.is_subtype = False
 
-        fields = []
-        for field in telegram_type.get("fields", []):
-            new_field = Field()
-            new_field.parse(field)
-            fields.append(new_field)
-
-        self.fields = fields
+        self.__parse_fields(telegram_type.get("fields", []))
 
     def make_method_equals(self, ident_spaces: int) -> tuple[list[str], str | None]:
         ident = " " * ident_spaces
@@ -248,3 +297,9 @@ class TypeGenerator:
         lines.append("}")
 
         return lines
+
+    @staticmethod
+    def ensure_additional_types() -> list:
+        to_return = copy(ADDITIONAL_TYPES)
+        ADDITIONAL_TYPES.clear()
+        return to_return
