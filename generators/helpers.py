@@ -1,4 +1,4 @@
-from imports import Imports
+from .imports import Imports
 
 def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
     ARRAY_OF_LITERAL = "Array of "

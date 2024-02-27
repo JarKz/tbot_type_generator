@@ -1,7 +1,7 @@
 from functools import reduce
 from typing import cast
 
-from helpers import *
+from .helpers import *
 
 
 class Field:
