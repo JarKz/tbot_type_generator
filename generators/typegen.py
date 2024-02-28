@@ -135,7 +135,7 @@ class TypeGenerator:
         self.imports = set()
         self.__parse_fields(telegram_type.get("fields", []))
 
-    def make_method_equals(self, ident_spaces: int) -> tuple[list[str], str | None]:
+    def make_method_equals(self, ident_spaces: int) -> list[str]:
         ident = " " * ident_spaces
         lines = [
             f"{ident}@Override\n",
@@ -147,7 +147,7 @@ class TypeGenerator:
         if not self.fields:
             lines.append(f"{ident * 2}return true;\n")
             lines.append(f"{ident}}}\n")
-            return (lines, None)
+            return lines
 
         exists_objects = False
         last = len(self.fields) - 1
@@ -176,9 +176,12 @@ class TypeGenerator:
 
         lines.append(f"{ident}}}\n")
 
-        return (lines, Imports.Objects.value if exists_objects else None)
+        if exists_objects:
+            self.imports.add(Imports.Objects.value)
 
-    def make_method_hash_code(self, ident_spaces: int) -> tuple[list[str], str | None]:
+        return lines
+
+    def make_method_hash_code(self, ident_spaces: int) -> list[str]:
         ident = " " * ident_spaces
         lines = [
             f"{ident}@Override\n",
@@ -191,14 +194,16 @@ class TypeGenerator:
                 f"{ident * 2}return prime;\n",
                 f"{ident}}}\n",
             ])
-            return (lines, None)
+            return lines
 
         fields = ", ".join(
             map(lambda field: field.camel_cased_name, self.fields))
         lines.append(f"{ident * 2} return Objects.hash({fields});\n")
         lines.append(f"{ident}}}\n")
 
-        return (lines, Imports.Objects.value)
+        self.imports.add(Imports.Objects.value)
+
+        return lines
 
     def make_method_to_string(self, ident_spaces: int) -> list[str]:
         ident = " " * ident_spaces
@@ -244,21 +249,13 @@ class TypeGenerator:
 
         ident_spaces = 2
 
-        equals_method, import_objects = self.make_method_equals(ident_spaces)
-        if import_objects is not None:
-            self.imports.add(import_objects)
-
-        hash_code_method, import_objects = self.make_method_hash_code(
-            ident_spaces)
-        if import_objects is not None:
-            self.imports.add(import_objects)
-
-        to_string_method = self.make_method_to_string(
-            ident_spaces)
+        equals_method = self.make_method_equals(ident_spaces)
+        hash_code_method = self.make_method_hash_code(ident_spaces)
+        to_string_method = self.make_method_to_string(ident_spaces)
 
         all_imports = map(lambda field: field.imports, self.fields)
-        self.imports = reduce(
-            lambda left, right: left.union(right), all_imports, self.imports)
+        self.imports = reduce(lambda lhs, rhs: lhs.union(rhs), all_imports, self.imports)
+
         if len(self.imports) > 0:
             lines.append(empty_line)
             for used_import in self.imports:
