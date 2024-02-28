@@ -39,6 +39,9 @@ def add_method_params(writer: WriterTypes, specs: dict):
     methods = map(lambda name: specs["methods"][name], method_names)
 
     for method_params in methods:
+        if "fields" not in method_params:
+            continue
+
         method_params["name"] = to_pascal_case(
             method_params["name"]) + "Parameters"
         writer.add_type(method_params, TypeClassification.MethodParameters)
