@@ -329,16 +329,17 @@ class Generators:
             if not additional_type.is_subtype:
                 for subtype in cast(list[str], additional_type.subtypes):
 
-                    for typegen in filter(lambda typegen: typegen.name == subtype and typegen.type_classification != additional_type.type_classification, GENERATOR_STORAGE):
-                        typegen.imports.add(
-                            f"import {self.base_packagename}.{additional_type.type_classification.value}.{additional_type.name};")
+                    for typegen in filter(lambda typegen: typegen.name == subtype, GENERATOR_STORAGE):
                         if typegen.subtype_of is not None:
                             typegen.subtype_of.append(additional_type.name)
                         else:
                             typegen.subtype_of = [additional_type.name]
 
-                        additional_type.imports.add(
-                            f"import {self.base_packagename}.{typegen.type_classification.value}.{typegen.name};")
+                        if typegen.type_classification != additional_type.type_classification:
+                            typegen.imports.add(
+                                f"import {self.base_packagename}.{additional_type.type_classification.value}.{additional_type.name};")
+                            additional_type.imports.add(
+                                f"import {self.base_packagename}.{typegen.type_classification.value}.{typegen.name};")
 
             GENERATOR_STORAGE.append(additional_type)
 
