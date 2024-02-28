@@ -6,12 +6,6 @@ from enum import Enum
 from .helpers import *
 
 
-SPECIFIC_TYPES: dict[frozenset[str], str] = {}
-GENERATOR_STORAGE = []
-ADDITIONAL_TYPES = []
-DYNAMIC_IMPORTS: dict = {}
-
-
 class TypeClassification(Enum):
     DataType = "types"
     MethodParameters = "core.parameters"
@@ -306,6 +300,14 @@ class TypeGenerator:
         lines.append("}")
 
         return lines
+
+
+SPECIFIC_TYPES: dict[frozenset[str], str] = {}
+GENERATOR_STORAGE: list[TypeGenerator] = []
+ADDITIONAL_TYPES: list[TypeGenerator] = []
+DYNAMIC_IMPORTS: dict[str, TypeClassification] = {
+    "InputFile": TypeClassification.DataType
+}
 
 
 class Generators:
