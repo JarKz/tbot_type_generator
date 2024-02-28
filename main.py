@@ -50,12 +50,10 @@ if __name__ == "__main__":
 
     output_dir = "output/"
 
-    package_basename = "jarkz.tbot"
-
     with open(api_json_file, "r") as file:
         api_specs = json.load(file)
 
-        writer = WriterTypes(output_dir, package_basename)
+        writer = WriterTypes(output_dir)
 
         add_datatypes(writer, api_specs)
         add_method_params(writer, api_specs)

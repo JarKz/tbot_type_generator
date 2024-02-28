@@ -7,6 +7,7 @@ from .helpers import *
 
 
 SPECIFIC_TYPES: dict[frozenset[str], str] = {}
+GENERATOR_STORAGE = []
 ADDITIONAL_TYPES = []
 
 
@@ -247,9 +248,9 @@ class TypeGenerator:
 
         return lines
 
-    def to_text(self, package_basename: str) -> list[str]:
+    def to_text(self, base_packagename: str) -> list[str]:
         lines = [
-            f"package {package_basename}.{self.type_classification.value};\n"
+            f"package {base_packagename}.{self.type_classification.value};\n"
         ]
         empty_line = "\n"
 
@@ -304,8 +305,39 @@ class TypeGenerator:
 
         return lines
 
-    @staticmethod
-    def ensure_additional_types() -> list:
-        to_return = copy(ADDITIONAL_TYPES)
+
+class Generators:
+    base_packagename: str
+
+    def __init__(self, base_packagename: str) -> None:
+        self.base_packagename = base_packagename
+
+    def add_typegen(self, telegram_type: dict, type_classification: TypeClassification):
+        GENERATOR_STORAGE.append(TypeGenerator(
+            telegram_type, type_classification))
+
+    def ensure_correctness(self):
+        for additional_type in ADDITIONAL_TYPES:
+            if not additional_type.is_subtype:
+                for subtype in cast(list[str], additional_type.subtypes):
+
+                    for typegen in filter(lambda typegen: typegen.name == subtype, GENERATOR_STORAGE):
+                        typegen.imports.add(
+                            f"import {self.base_packagename}.{additional_type.type_classification.value}.{additional_type.name};")
+                        if typegen.subtype_of is not None:
+                            typegen.subtype_of.append(additional_type.name)
+                        else:
+                            typegen.subtype_of = [additional_type.name]
+
+                        additional_type.imports.add(
+                            f"import {self.base_packagename}.{typegen.type_classification.value}.{typegen.name};")
+
+            GENERATOR_STORAGE.append(additional_type)
+
         ADDITIONAL_TYPES.clear()
-        return to_return
+
+    def typegens(self) -> list[TypeGenerator]:
+        self.ensure_correctness()
+        typegens = copy(GENERATOR_STORAGE)
+        GENERATOR_STORAGE.clear()
+        return typegens
