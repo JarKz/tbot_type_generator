@@ -1,9 +1,9 @@
 from requests import get
-import os
 import json
 
-from generators.typegen import TypeClassification, TypeGenerator
+from generators.typegen import TypeClassification
 from generators.helpers import to_pascal_case
+from writer.type_writer import WriterType
 
 SPECS_PATH = "https://github.com/PaulSonOfLars/telegram-bot-api-spec/blob/main/api.json"
 IGNORE_TYPES = [
@@ -22,66 +22,44 @@ def download_specs(output_file: str):
         file.writelines(lines)
 
 
-def generate_types(output_dir: str, package_basename: str, api_specs: dict):
+def add_datatypes(writer: WriterType, specs: dict):
+    datatype_names = specs["types"].keys()
+    datatypes = map(lambda name: specs["types"][name], datatype_names)
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    for datatype in datatypes:
 
-    typenames = api_specs["types"].keys()
-    telegram_types = map(
-        lambda typename: api_specs["types"][typename], typenames)
-
-    for telegram_type in telegram_types:
-        if telegram_type["name"] in IGNORE_TYPES:
+        if datatype["name"] in IGNORE_TYPES:
             continue
 
-        filename = output_dir + telegram_type["name"] + ".java"
-        typegen = TypeGenerator(telegram_type, TypeClassification.DataType)
-
-        with open(filename, "w") as java_file:
-            java_file.writelines(typegen.to_text(
-                package_basename + ".types"))
+        writer.add_type(
+            datatype, TypeClassification.DataType, package_basename)
 
 
-def generate_parameters(output_dir: str, package_basename: str, api_specs: dict):
+def add_method_params(writer: WriterType, specs: dict):
+    method_names = specs["methods"].keys()
+    methods = map(lambda name: specs["methods"][name], method_names)
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    typenames = api_specs["methods"].keys()
-    telegram_types = map(
-        lambda typename: api_specs["methods"][typename], typenames)
-
-    for telegram_type in telegram_types:
-        telegram_type["name"] = to_pascal_case(
-            telegram_type["name"]) + "Parameters"
-
-        filename = output_dir + telegram_type["name"] + ".java"
-        typegen = TypeGenerator(
-            telegram_type, TypeClassification.MethodParameters)
-
-        with open(filename, "w") as java_file:
-            java_file.writelines(typegen.to_text(
-                package_basename + ".core.parameters"))
-
-    for typegen in TypeGenerator.ensure_additional_types():
-        filename = output_dir + typegen.name + ".java"
-        with open(filename, "w") as java_file:
-            java_file.writelines(typegen.to_text(
-                package_basename + ".core.parameters"))
+    for method_params in methods:
+        method_params["name"] = to_pascal_case(
+            method_params["name"]) + "Parameters"
+        writer.add_type(
+            method_params, TypeClassification.MethodParameters, package_basename)
 
 
 if __name__ == "__main__":
     api_json_file = "api.json"
     download_specs(output_file=api_json_file)
 
-    types_output_directory = "output/types/"
-    parameters_output_directory = "output/parameters/"
+    output_dir = "output/"
 
     package_basename = "jarkz.tbot"
 
     with open(api_json_file, "r") as file:
         api_specs = json.load(file)
-        generate_types(types_output_directory, package_basename, api_specs)
-        generate_parameters(parameters_output_directory,
-                            package_basename, api_specs)
+
+        writer = WriterType(output_dir)
+
+        add_datatypes(writer, api_specs)
+        add_method_params(writer, api_specs)
+
+        writer.write_all()

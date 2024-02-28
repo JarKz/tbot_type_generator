@@ -11,8 +11,8 @@ ADDITIONAL_TYPES = []
 
 
 class TypeClassification(Enum):
-    DataType = 0
-    MethodParameters = 1
+    DataType = "types"
+    MethodParameters = "core.parameters"
 
 
 class Field:
@@ -61,21 +61,23 @@ class Field:
 
 
 class TypeGenerator:
+    package_basename: str
     name: str
     description: list[str]
     fields: list[Field]
     is_subtype: bool
-    subtype_of: None | str
+    subtype_of: None | list[str]
     subtypes: None | list[str]
+    imports: set[str]
 
     DEFAULT_TYPE_CLASSIFICATION = TypeClassification.DataType
     type_classification: TypeClassification
 
-    def __init__(self, telegram_type: dict, type_classification: None | TypeClassification = None):
+    def __init__(self, telegram_type: dict, package_basename: str, type_classification: None | TypeClassification = None):
         if type_classification is None:
-            self.parse(telegram_type, self.DEFAULT_TYPE_CLASSIFICATION)
+            self.parse(telegram_type, package_basename, self.DEFAULT_TYPE_CLASSIFICATION)
         else:
-            self.parse(telegram_type, type_classification)
+            self.parse(telegram_type, package_basename, type_classification)
 
     def __parse_fields(self, raw_fields: list[dict]):
         fields = []
@@ -101,7 +103,7 @@ class TypeGenerator:
                             data["subtypes"] = list(
                                 map(lambda type_: type_[len("Array of "):], types))
 
-                        ADDITIONAL_TYPES.append(TypeGenerator(data))
+                        ADDITIONAL_TYPES.append(TypeGenerator(data, self.package_basename, self.type_classification))
                         SPECIFIC_TYPES[types] = name
 
                         raw_field["types"] = [new_type]
@@ -110,7 +112,8 @@ class TypeGenerator:
 
         self.fields = fields
 
-    def parse(self, telegram_type: dict, type_classification: TypeClassification):
+    def parse(self, telegram_type: dict, package_basename: str, type_classification: TypeClassification):
+        self.package_basename = package_basename
         self.type_classification = type_classification
 
         self.name = telegram_type["name"]
@@ -126,10 +129,11 @@ class TypeGenerator:
                 if len(self.subtype_of) > 1:
                     raise Exception(
                         "Expected one subtype_of, but given many subtype_of!")
-                self.subtype_of = self.subtype_of[0]
+                self.subtype_of = self.subtype_of
         else:
             self.is_subtype = False
 
+        self.imports = set()
         self.__parse_fields(telegram_type.get("fields", []))
 
     def make_method_equals(self, ident_spaces: int) -> tuple[list[str], str | None]:
@@ -233,33 +237,32 @@ class TypeGenerator:
 
         return lines
 
-    def to_text(self, package_name: str) -> list[str]:
+    def to_text(self) -> list[str]:
         lines = [
-            f"package {package_name};\n"
+            f"package {self.package_basename}.{self.type_classification.value};\n"
         ]
         empty_line = "\n"
 
         ident_spaces = 2
 
-        used_imports = set()
         equals_method, import_objects = self.make_method_equals(ident_spaces)
         if import_objects is not None:
-            used_imports.add(import_objects)
+            self.imports.add(import_objects)
 
         hash_code_method, import_objects = self.make_method_hash_code(
             ident_spaces)
         if import_objects is not None:
-            used_imports.add(import_objects)
+            self.imports.add(import_objects)
 
         to_string_method = self.make_method_to_string(
             ident_spaces)
 
         all_imports = map(lambda field: field.imports, self.fields)
-        used_imports = reduce(
-            lambda left, right: left.union(right), all_imports, used_imports)
-        if len(used_imports) > 0:
+        self.imports = reduce(
+            lambda left, right: left.union(right), all_imports, self.imports)
+        if len(self.imports) > 0:
             lines.append(empty_line)
-            for used_import in used_imports:
+            for used_import in self.imports:
                 lines.append(used_import + "\n")
 
         for _ in range(2):
@@ -275,7 +278,8 @@ class TypeGenerator:
 
         classname = f"public final class {self.name}"
         if self.subtype_of is not None:
-            classname += f" implements {self.subtype_of}"
+            supertypes = ", ".join(self.subtype_of)
+            classname += f" implements {supertypes}"
 
         classname += " {\n"
         lines.append(classname)
