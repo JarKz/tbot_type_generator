@@ -3,7 +3,7 @@ import json
 
 from generators.typegen import TypeClassification
 from generators.helpers import to_pascal_case
-from writer.type_writer import WriterType
+from writer.type_writer import WriterTypes
 
 SPECS_PATH = "https://github.com/PaulSonOfLars/telegram-bot-api-spec/blob/main/api.json"
 IGNORE_TYPES = [
@@ -22,7 +22,7 @@ def download_specs(output_file: str):
         file.writelines(lines)
 
 
-def add_datatypes(writer: WriterType, specs: dict):
+def add_datatypes(writer: WriterTypes, specs: dict):
     datatype_names = specs["types"].keys()
     datatypes = map(lambda name: specs["types"][name], datatype_names)
 
@@ -31,19 +31,17 @@ def add_datatypes(writer: WriterType, specs: dict):
         if datatype["name"] in IGNORE_TYPES:
             continue
 
-        writer.add_type(
-            datatype, TypeClassification.DataType, package_basename)
+        writer.add_type(datatype, TypeClassification.DataType)
 
 
-def add_method_params(writer: WriterType, specs: dict):
+def add_method_params(writer: WriterTypes, specs: dict):
     method_names = specs["methods"].keys()
     methods = map(lambda name: specs["methods"][name], method_names)
 
     for method_params in methods:
         method_params["name"] = to_pascal_case(
             method_params["name"]) + "Parameters"
-        writer.add_type(
-            method_params, TypeClassification.MethodParameters, package_basename)
+        writer.add_type(method_params, TypeClassification.MethodParameters)
 
 
 if __name__ == "__main__":
@@ -57,7 +55,7 @@ if __name__ == "__main__":
     with open(api_json_file, "r") as file:
         api_specs = json.load(file)
 
-        writer = WriterType(output_dir)
+        writer = WriterTypes(output_dir, package_basename)
 
         add_datatypes(writer, api_specs)
         add_method_params(writer, api_specs)

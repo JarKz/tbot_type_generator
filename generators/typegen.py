@@ -61,7 +61,6 @@ class Field:
 
 
 class TypeGenerator:
-    package_basename: str
     name: str
     description: list[str]
     fields: list[Field]
@@ -73,11 +72,11 @@ class TypeGenerator:
     DEFAULT_TYPE_CLASSIFICATION = TypeClassification.DataType
     type_classification: TypeClassification
 
-    def __init__(self, telegram_type: dict, package_basename: str, type_classification: None | TypeClassification = None):
+    def __init__(self, telegram_type: dict, type_classification: None | TypeClassification = None):
         if type_classification is None:
-            self.parse(telegram_type, package_basename, self.DEFAULT_TYPE_CLASSIFICATION)
+            self.parse(telegram_type, self.DEFAULT_TYPE_CLASSIFICATION)
         else:
-            self.parse(telegram_type, package_basename, type_classification)
+            self.parse(telegram_type, type_classification)
 
     def __parse_fields(self, raw_fields: list[dict]):
         fields = []
@@ -103,7 +102,8 @@ class TypeGenerator:
                             data["subtypes"] = list(
                                 map(lambda type_: type_[len("Array of "):], types))
 
-                        ADDITIONAL_TYPES.append(TypeGenerator(data, self.package_basename, self.type_classification))
+                        ADDITIONAL_TYPES.append(TypeGenerator(
+                            data, self.type_classification))
                         SPECIFIC_TYPES[types] = name
 
                         raw_field["types"] = [new_type]
@@ -112,8 +112,7 @@ class TypeGenerator:
 
         self.fields = fields
 
-    def parse(self, telegram_type: dict, package_basename: str, type_classification: TypeClassification):
-        self.package_basename = package_basename
+    def parse(self, telegram_type: dict, type_classification: TypeClassification):
         self.type_classification = type_classification
 
         self.name = telegram_type["name"]
@@ -237,9 +236,9 @@ class TypeGenerator:
 
         return lines
 
-    def to_text(self) -> list[str]:
+    def to_text(self, package_basename: str) -> list[str]:
         lines = [
-            f"package {self.package_basename}.{self.type_classification.value};\n"
+            f"package {package_basename}.{self.type_classification.value};\n"
         ]
         empty_line = "\n"
 
