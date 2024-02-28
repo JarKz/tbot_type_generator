@@ -78,6 +78,27 @@ class TypeGenerator:
         else:
             self.parse(telegram_type, type_classification)
 
+    def __create_new_interface(self, raw_field: dict) -> str:
+        types: list[str] = raw_field["types"]
+        name = to_pascal_case(raw_field["name"])
+
+        new_type = name
+        data = {
+            "name": name,
+            "description": "",
+            "subtypes": types,
+        }
+        if all(map(lambda typename: typename.startswith("Array of"), types)):
+            new_type = "Array of " + name
+            data["subtypes"] = list(
+                map(lambda type_: type_[len("Array of "):], types))
+
+        ADDITIONAL_TYPES.append(TypeGenerator(
+            data, self.type_classification))
+        SPECIFIC_TYPES[frozenset(types)] = name
+
+        return new_type
+
     def __parse_fields(self, raw_fields: list[dict]):
         fields = []
         match self.type_classification:
@@ -90,22 +111,7 @@ class TypeGenerator:
                     if types in SPECIFIC_TYPES:
                         raw_field["types"] = [SPECIFIC_TYPES[types]]
                     elif len(types) > 2:
-                        name = to_pascal_case(raw_field["name"])
-                        new_type = name
-                        data = {
-                            "name": name,
-                            "description": "",
-                            "subtypes": list(types),
-                        }
-                        if all(map(lambda typename: typename.startswith("Array of"), types)):
-                            new_type = "Array of " + name
-                            data["subtypes"] = list(
-                                map(lambda type_: type_[len("Array of "):], types))
-
-                        ADDITIONAL_TYPES.append(TypeGenerator(
-                            data, self.type_classification))
-                        SPECIFIC_TYPES[types] = name
-
+                        new_type = self.__create_new_interface(raw_field)
                         raw_field["types"] = [new_type]
 
                     fields.append(Field(raw_field))
