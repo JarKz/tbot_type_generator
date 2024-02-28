@@ -326,6 +326,9 @@ class Generators:
 
     def __append_additional_types(self):
         for additional_type in ADDITIONAL_TYPES:
+            if additional_type.name not in DYNAMIC_IMPORTS:
+                DYNAMIC_IMPORTS[additional_type.name] = additional_type.type_classification
+
             if not additional_type.is_subtype:
                 for subtype in cast(list[str], additional_type.subtypes):
 
