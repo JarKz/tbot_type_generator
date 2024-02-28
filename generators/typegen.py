@@ -9,6 +9,7 @@ from .helpers import *
 SPECIFIC_TYPES: dict[frozenset[str], str] = {}
 GENERATOR_STORAGE = []
 ADDITIONAL_TYPES = []
+DYNAMIC_IMPORTS: dict = {}
 
 
 class TypeClassification(Enum):
@@ -313,10 +314,14 @@ class Generators:
         self.base_packagename = base_packagename
 
     def add_typegen(self, telegram_type: dict, type_classification: TypeClassification):
-        GENERATOR_STORAGE.append(TypeGenerator(
-            telegram_type, type_classification))
+        typegen = TypeGenerator(telegram_type, type_classification)
 
-    def ensure_correctness(self):
+        if typegen.name not in DYNAMIC_IMPORTS:
+            DYNAMIC_IMPORTS[typegen.name] = type_classification
+
+        GENERATOR_STORAGE.append(typegen)
+
+    def __append_additional_types(self):
         for additional_type in ADDITIONAL_TYPES:
             if not additional_type.is_subtype:
                 for subtype in cast(list[str], additional_type.subtypes):
@@ -336,8 +341,29 @@ class Generators:
 
         ADDITIONAL_TYPES.clear()
 
+    def __ensure_dynamic_imports(self):
+        def same_type_and_in_other_package(field: Field):
+            same_type = field.type_ in DYNAMIC_IMPORTS
+            if same_type:
+                return typegen.type_classification != DYNAMIC_IMPORTS[field.type_]
+            return same_type
+
+        for typegen in GENERATOR_STORAGE:
+            typegen = cast(TypeGenerator, typegen)
+
+            for field in typegen.fields:
+
+                if same_type_and_in_other_package(field):
+                    other_package = DYNAMIC_IMPORTS[field.type_].value
+                    typegen.imports.add(
+                        f"import {self.base_packagename}.{other_package}.{field.type_};")
+
+    def __ensure_correctness(self):
+        self.__append_additional_types()
+        self.__ensure_dynamic_imports()
+
     def typegens(self) -> list[TypeGenerator]:
-        self.ensure_correctness()
+        self.__ensure_correctness()
         typegens = copy(GENERATOR_STORAGE)
         GENERATOR_STORAGE.clear()
         return typegens
