@@ -90,7 +90,7 @@ class TypeGenerator:
                 map(lambda type_: type_[len("Array of "):], types))
 
         ADDITIONAL_TYPES.append(TypeGenerator(
-            data, self.type_classification))
+            data, TypeGenerator.DEFAULT_TYPE_CLASSIFICATION))
         SPECIFIC_TYPES[frozenset(types)] = name
 
         return new_type
@@ -329,7 +329,7 @@ class Generators:
             if not additional_type.is_subtype:
                 for subtype in cast(list[str], additional_type.subtypes):
 
-                    for typegen in filter(lambda typegen: typegen.name == subtype, GENERATOR_STORAGE):
+                    for typegen in filter(lambda typegen: typegen.name == subtype and typegen.type_classification != additional_type.type_classification, GENERATOR_STORAGE):
                         typegen.imports.add(
                             f"import {self.base_packagename}.{additional_type.type_classification.value}.{additional_type.name};")
                         if typegen.subtype_of is not None:
