@@ -47,6 +47,14 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
     raise Exception(f"Unknown type: {original_types}!")
 
 
+def unwrap_type(original_type: str) -> str:
+    LIST = "List<"
+
+    while original_type.startswith(LIST):
+        original_type = original_type[len(LIST):-1]
+
+    return original_type
+
 def is_primitive(type_name: str) -> bool:
     return type_name in ["int", "float", "long", "double", "char", "byte", "boolean", "short"]
 

@@ -262,7 +262,8 @@ class TypeGenerator:
         to_string_method = self.make_method_to_string(ident_spaces)
 
         all_imports = map(lambda field: field.imports, self.fields)
-        self.imports = reduce(lambda lhs, rhs: lhs.union(rhs), all_imports, self.imports)
+        self.imports = reduce(lambda lhs, rhs: lhs.union(
+            rhs), all_imports, self.imports)
 
         if len(self.imports) > 0:
             lines.append(empty_line)
@@ -342,21 +343,22 @@ class Generators:
         ADDITIONAL_TYPES.clear()
 
     def __ensure_dynamic_imports(self):
-        def same_type_and_in_other_package(field: Field):
-            same_type = field.type_ in DYNAMIC_IMPORTS
-            if same_type:
-                return typegen.type_classification != DYNAMIC_IMPORTS[field.type_]
-            return same_type
-
         for typegen in GENERATOR_STORAGE:
             typegen = cast(TypeGenerator, typegen)
 
             for field in typegen.fields:
 
-                if same_type_and_in_other_package(field):
-                    other_package = DYNAMIC_IMPORTS[field.type_].value
-                    typegen.imports.add(
-                        f"import {self.base_packagename}.{other_package}.{field.type_};")
+                base_type = unwrap_type(field.type_)
+                same_type = base_type in DYNAMIC_IMPORTS
+                if not same_type:
+                    continue
+
+                if typegen.type_classification == DYNAMIC_IMPORTS[base_type]:
+                    continue
+
+                other_package = DYNAMIC_IMPORTS[base_type].value
+                typegen.imports.add(
+                    f"import {self.base_packagename}.{other_package}.{base_type};")
 
     def __ensure_correctness(self):
         self.__append_additional_types()
