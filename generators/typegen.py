@@ -46,7 +46,7 @@ class Field:
 
     def __get_field_line(self, indent: str, type_classification: TypeClassification):
         def put_constant_if_matches(line: str):
-            regex = re.compile("must be \\w*")
+            regex = re.compile("must be \\w*$")
             match = regex.findall(self.description)
             if match:
                 data = match[0].split(" ")[-1]
