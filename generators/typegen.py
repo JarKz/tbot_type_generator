@@ -46,13 +46,15 @@ class Field:
 
     def to_text(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
         def get_constant_if_matches() -> None | str:
-            line = None
-            regex = re.compile("must be \\w*$")
-            match = regex.findall(self.description)
-            if match:
-                data = match[0].split(" ")[-1]
-                line = f"{indent}public static final {self.type_} {self.name.upper()} = \"{data}\";\n"
-            return line
+            regexs = [re.compile("must be \\w*$"), re.compile("always \"\\w*\"$")]
+            for regex in regexs:
+                match = regex.findall(self.description)
+                if match:
+                    data: str = match[0].split(" ")[-1]
+                    if not data.startswith('"'):
+                        data = '"' + data + '"'
+                    return f"{indent}public static final {self.type_} {self.name.upper()} = {data};\n"
+            return None
 
         indent = " " * indent_spaces
         lines = [
