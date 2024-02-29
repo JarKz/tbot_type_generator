@@ -338,7 +338,7 @@ DYNAMIC_IMPORTS: dict[str, TypeClassification] = {
 }
 
 
-class Generators:
+class TypeGenerators:
     base_packagename: str
 
     def __init__(self, base_packagename: str) -> None:
