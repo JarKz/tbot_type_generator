@@ -1,7 +1,7 @@
 from .imports import Imports
 
 
-def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
+def map_type(original_types: list[str], required: bool, field_description: str = "") -> tuple[str, set[str]]:
     ARRAY_OF_LITERAL = "Array of "
     return_value = {
         True: {
@@ -9,7 +9,8 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
             "Float number": "float",
             "Integer": "int",
             "Boolean": "boolean",
-            "Float": "float"
+            "Float": "float",
+            "Long": "long",
         },
         False: {
             "True": "Boolean",
@@ -29,8 +30,18 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
 
         return (original_type, {Imports.List.value})
 
+    def handle_type_by_description(original_type: str, description: str) -> str:
+        if "attach://" in description and original_type == "String":
+            original_type = "InputFile"
+
+        if "64 bit" in field_description or "64-bit" in description and original_type == "Integer":
+            original_type = "Long"
+
+        return original_type
+
     if len(original_types) == 1:
         original_type = original_types[0]
+        original_type = handle_type_by_description(original_type, field_description)
 
         if original_type in return_value[required]:
             return (return_value[required][original_type], set())
@@ -54,6 +65,7 @@ def unwrap_type(original_type: str) -> str:
         original_type = original_type[len(LIST):-1]
 
     return original_type
+
 
 def is_primitive(type_name: str) -> bool:
     return type_name in ["int", "float", "long", "double", "char", "byte", "boolean", "short"]

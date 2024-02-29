@@ -39,7 +39,7 @@ class Field:
             self.annotations.append(f"@SerializedName(\"{self.name}\")")
             self.imports.add(Imports.SerializedName.value)
 
-        self.type_, imports = map_type(field["types"], self.required)
+        self.type_, imports = map_type(field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
     def to_text(self, ident_spaces: int) -> list[str]:
