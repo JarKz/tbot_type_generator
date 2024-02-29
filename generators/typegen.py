@@ -306,7 +306,8 @@ SPECIFIC_TYPES: dict[frozenset[str], str] = {}
 GENERATOR_STORAGE: list[TypeGenerator] = []
 ADDITIONAL_TYPES: list[TypeGenerator] = []
 DYNAMIC_IMPORTS: dict[str, TypeClassification] = {
-    "InputFile": TypeClassification.DataType
+    "InputFile": TypeClassification.DataType,
+    "Id": TypeClassification.DataType,
 }
 
 

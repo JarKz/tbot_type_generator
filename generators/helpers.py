@@ -40,7 +40,7 @@ def map_type(original_types: list[str], required: bool) -> tuple[str, set[str]]:
         return (original_type, set())
 
     if original_types == ["Integer", "String"]:
-        return ("String", set())
+        return ("Id", set())
     if original_types == ["InputFile", "String"]:
         return ("InputFile", set())
 
