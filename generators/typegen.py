@@ -44,31 +44,38 @@ class Field:
             field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
-    def __get_field_line(self, indent: str, type_classification: TypeClassification):
-        def put_constant_if_matches(line: str):
+    def to_text(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
+        def get_constant_if_matches() -> None | str:
+            line = None
             regex = re.compile("must be \\w*$")
             match = regex.findall(self.description)
             if match:
                 data = match[0].split(" ")[-1]
-                line = f"{indent}public final {self.type_} {self.camel_cased_name} = \"{data}\";\n"
+                line = f"{indent}public static final {self.type_} {self.name.upper()} = \"{data}\";\n"
             return line
 
-        field_line = f"{indent}public {self.type_} {self.camel_cased_name};\n"
-        if type_classification == TypeClassification.DataType:
-            field_line = put_constant_if_matches(field_line)
-
-        return field_line
-
-    def to_text(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
         indent = " " * indent_spaces
         lines = [
             f"{indent}/** {self.description} */\n"
         ]
 
+        is_constant = False
+        if type_classification == TypeClassification.DataType:
+            constant_line = get_constant_if_matches()
+            if constant_line is not None:
+                lines.insert(0, constant_line)
+                is_constant = True
+
         for annotation in self.annotations:
             lines.append(f"{indent}{annotation}\n")
 
-        lines.append(self.__get_field_line(indent, type_classification))
+        field_line = f"{indent}public "
+        if is_constant:
+            field_line += f" final {self.type_} {self.camel_cased_name} = {self.name.upper()};\n"
+        else:
+            field_line += f"{self.type_} {self.camel_cased_name};\n"
+
+        lines.append(field_line)
 
         return lines
 
