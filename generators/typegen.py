@@ -2,6 +2,7 @@ from functools import reduce
 from typing import cast
 from copy import copy
 from enum import Enum
+import re
 
 from .helpers import *
 
@@ -39,10 +40,26 @@ class Field:
             self.annotations.append(f"@SerializedName(\"{self.name}\")")
             self.imports.add(Imports.SerializedName.value)
 
-        self.type_, imports = map_type(field["types"], self.required, self.description)
+        self.type_, imports = map_type(
+            field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
-    def to_text(self, indent_spaces: int) -> list[str]:
+    def __get_field_line(self, indent: str, type_classification: TypeClassification):
+        def put_constant_if_matches(line: str):
+            regex = re.compile("must be \\w*")
+            match = regex.findall(self.description)
+            if match:
+                data = match[0].split(" ")[-1]
+                line = f"{indent}public final {self.type_} {self.camel_cased_name} = \"{data}\";\n"
+            return line
+
+        field_line = f"{indent}public {self.type_} {self.camel_cased_name};\n"
+        if type_classification == TypeClassification.DataType:
+            field_line = put_constant_if_matches(field_line)
+
+        return field_line
+
+    def to_text(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
         indent = " " * indent_spaces
         lines = [
             f"{indent}/** {self.description} */\n"
@@ -51,7 +68,7 @@ class Field:
         for annotation in self.annotations:
             lines.append(f"{indent}{annotation}\n")
 
-        lines.append(f"{indent}public {self.type_} {self.camel_cased_name};\n")
+        lines.append(self.__get_field_line(indent, type_classification))
 
         return lines
 
@@ -286,7 +303,8 @@ class TypeGenerator:
 
         last = len(self.fields) - 1
         for i, field in enumerate(self.fields):
-            lines.extend(field.to_text(indent_spaces))
+            lines.extend(field.to_text(
+                indent_spaces, self.type_classification))
             if i != last:
                 lines.append(empty_line)
 
