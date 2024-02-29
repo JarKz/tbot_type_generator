@@ -1,25 +1,27 @@
 import os
-from generators.typegen import Generators, TypeClassification
+from generators.methodgen import MethodGenerators
+from generators.typegen import TypeGenerators, TypeClassification
 
 
 BASE_PACKAGE_NAME = "jarkz.tbot"
 
-
-class WriterTypes:
-    geneartors: Generators
+class CodeWriter:
+    type_geneartors: TypeGenerators
+    method_generators: MethodGenerators
     outdir: str
     base_packagename: str
 
     def __init__(self, outdir: str, base_packagename: str = BASE_PACKAGE_NAME) -> None:
         self.outdir = outdir
-        self.geneartors = Generators(base_packagename)
+        self.type_geneartors = TypeGenerators(base_packagename)
         self.base_packagename = base_packagename
 
     def add_type(self, type_: dict, type_classification: TypeClassification):
-        self.geneartors.add_typegen(type_, type_classification)
+        self.type_geneartors.add_typegen(type_, type_classification)
+
 
     def write_all(self):
-        for typegen in self.geneartors.typegens():
+        for typegen in self.type_geneartors.typegens():
             extended_path = self.outdir + \
                 typegen.type_classification.value.replace(".", "/") + "/"
 
