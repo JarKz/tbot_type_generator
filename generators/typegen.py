@@ -42,16 +42,16 @@ class Field:
         self.type_, imports = map_type(field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
-    def to_text(self, ident_spaces: int) -> list[str]:
-        ident = " " * ident_spaces
+    def to_text(self, indent_spaces: int) -> list[str]:
+        indent = " " * indent_spaces
         lines = [
-            f"{ident}/** {self.description} */\n"
+            f"{indent}/** {self.description} */\n"
         ]
 
         for annotation in self.annotations:
-            lines.append(f"{ident}{annotation}\n")
+            lines.append(f"{indent}{annotation}\n")
 
-        lines.append(f"{ident}public {self.type_} {self.camel_cased_name};\n")
+        lines.append(f"{indent}public {self.type_} {self.camel_cased_name};\n")
 
         return lines
 
@@ -137,18 +137,18 @@ class TypeGenerator:
         self.imports = set()
         self.__parse_fields(telegram_type.get("fields", []))
 
-    def make_method_equals(self, ident_spaces: int) -> list[str]:
-        ident = " " * ident_spaces
+    def make_method_equals(self, indent_spaces: int) -> list[str]:
+        indent = " " * indent_spaces
         lines = [
-            f"{ident}@Override\n",
-            f"{ident}public final boolean equals(Object obj) {{\n"
-            f"{ident * 2}if (this == obj) return true;\n"
-            f"{ident * 2}if (!(obj instanceof {self.name} other)) return false;\n"
+            f"{indent}@Override\n",
+            f"{indent}public final boolean equals(Object obj) {{\n"
+            f"{indent * 2}if (this == obj) return true;\n"
+            f"{indent * 2}if (!(obj instanceof {self.name} other)) return false;\n"
         ]
 
         if not self.fields:
-            lines.append(f"{ident * 2}return true;\n")
-            lines.append(f"{ident}}}\n")
+            lines.append(f"{indent * 2}return true;\n")
+            lines.append(f"{indent}}}\n")
             return lines
 
         exists_objects = False
@@ -165,9 +165,9 @@ class TypeGenerator:
                 exists_objects = True
 
             if i == 0:
-                line = f"{ident * 2}return {line}"
+                line = f"{indent * 2}return {line}"
             else:
-                line = f"{ident * 4}&& {line}"
+                line = f"{indent * 4}&& {line}"
 
             if i == last:
                 line += ";\n"
@@ -176,54 +176,54 @@ class TypeGenerator:
 
             lines.append(line)
 
-        lines.append(f"{ident}}}\n")
+        lines.append(f"{indent}}}\n")
 
         if exists_objects:
             self.imports.add(Imports.Objects.value)
 
         return lines
 
-    def make_method_hash_code(self, ident_spaces: int) -> list[str]:
-        ident = " " * ident_spaces
+    def make_method_hash_code(self, indent_spaces: int) -> list[str]:
+        indent = " " * indent_spaces
         lines = [
-            f"{ident}@Override\n",
-            f"{ident}public final int hashCode() {{\n"
+            f"{indent}@Override\n",
+            f"{indent}public final int hashCode() {{\n"
         ]
 
         if not self.fields:
             lines.extend([
-                f"{ident * 2}int prime = 31;\n",
-                f"{ident * 2}return prime;\n",
-                f"{ident}}}\n",
+                f"{indent * 2}int prime = 31;\n",
+                f"{indent * 2}return prime;\n",
+                f"{indent}}}\n",
             ])
             return lines
 
         fields = ", ".join(
             map(lambda field: field.camel_cased_name, self.fields))
-        lines.append(f"{ident * 2} return Objects.hash({fields});\n")
-        lines.append(f"{ident}}}\n")
+        lines.append(f"{indent * 2} return Objects.hash({fields});\n")
+        lines.append(f"{indent}}}\n")
 
         self.imports.add(Imports.Objects.value)
 
         return lines
 
-    def make_method_to_string(self, ident_spaces: int) -> list[str]:
-        ident = " " * ident_spaces
+    def make_method_to_string(self, indent_spaces: int) -> list[str]:
+        indent = " " * indent_spaces
         lines = [
-            f"{ident}@Override\n",
-            f"{ident}public final String toString() {{\n"
+            f"{indent}@Override\n",
+            f"{indent}public final String toString() {{\n"
         ]
 
         if not self.fields:
             lines.extend([
-                f"{ident * 2}return \"{self.name}[]\";\n",
-                f"{ident}}}\n",
+                f"{indent * 2}return \"{self.name}[]\";\n",
+                f"{indent}}}\n",
             ])
             return lines
 
         lines.extend([
-            f"{ident * 2}var builder = new StringBuilder();\n",
-            f"{ident * 2}builder\n"
+            f"{indent * 2}var builder = new StringBuilder();\n",
+            f"{indent * 2}builder\n"
         ])
         name = f"{self.name}["
 
@@ -232,13 +232,13 @@ class TypeGenerator:
                 name += f"{field.camel_cased_name}="
             else:
                 name = f", {field.camel_cased_name}="
-            lines.append(f"{ident * 4}.append(\"{name}\")\n")
-            lines.append(f"{ident * 4}.append({field.camel_cased_name})\n")
+            lines.append(f"{indent * 4}.append(\"{name}\")\n")
+            lines.append(f"{indent * 4}.append({field.camel_cased_name})\n")
 
         lines.extend([
-            f"{ident * 4}.append(\"]\");\n",
-            f"{ident * 2}return builder.toString();\n",
-            f"{ident}}}\n",
+            f"{indent * 4}.append(\"]\");\n",
+            f"{indent * 2}return builder.toString();\n",
+            f"{indent}}}\n",
         ])
 
         return lines
@@ -249,11 +249,11 @@ class TypeGenerator:
         ]
         empty_line = "\n"
 
-        ident_spaces = 2
+        indent_spaces = 2
 
-        equals_method = self.make_method_equals(ident_spaces)
-        hash_code_method = self.make_method_hash_code(ident_spaces)
-        to_string_method = self.make_method_to_string(ident_spaces)
+        equals_method = self.make_method_equals(indent_spaces)
+        hash_code_method = self.make_method_hash_code(indent_spaces)
+        to_string_method = self.make_method_to_string(indent_spaces)
 
         all_imports = map(lambda field: field.imports, self.fields)
         self.imports = reduce(lambda lhs, rhs: lhs.union(
@@ -267,7 +267,7 @@ class TypeGenerator:
         for _ in range(2):
             lines.append(empty_line)
 
-        lines.append(generate_description(self.description, ident_spaces=0))
+        lines.append(generate_description(self.description, indent_spaces=0))
 
         if not self.is_subtype:
             subtypes = ", ".join(cast(list[str], self.subtypes))
@@ -286,7 +286,7 @@ class TypeGenerator:
 
         last = len(self.fields) - 1
         for i, field in enumerate(self.fields):
-            lines.extend(field.to_text(ident_spaces))
+            lines.extend(field.to_text(indent_spaces))
             if i != last:
                 lines.append(empty_line)
 

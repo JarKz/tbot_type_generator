@@ -87,13 +87,13 @@ def to_pascal_case(field_name: str) -> str:
     return "".join(map(lambda word: word[0].upper() + word[1:], words))
 
 
-def generate_description(phrases: list[str], ident_spaces: int) -> str:
-    ident = " " * ident_spaces
-    description = f"{ident}/**\n"
+def generate_description(phrases: list[str], indent_spaces: int) -> str:
+    indent = " " * indent_spaces
+    description = f"{indent}/**\n"
     last = len(phrases) - 1
     for i, phrase in enumerate(phrases):
-        description += f"{ident}* {phrase}\n"
+        description += f"{indent}* {phrase}\n"
         if i != last:
-            description += f"{ident}*\n"
+            description += f"{indent}*\n"
     description += "*/\n"
     return description
