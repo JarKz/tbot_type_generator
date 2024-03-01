@@ -321,7 +321,7 @@ class Method:
         match state:
             case FindState.NotFound:
                 return [
-                    f"{indent}final var entity = new StringEntity(gson.toJson(params), Charset.forName(\"UTF-8\");\n"
+                    f"{indent}final var entity = new StringEntity(gson.toJson(params), Charset.forName(\"UTF-8\"));\n"
                     f"{indent}var response = makeRequest(methodName, entity);\n"
                 ]
             case FindState.Found:
