@@ -1,6 +1,6 @@
 from enum import Enum
 from functools import reduce
-from typing import Iterable
+from typing import Iterable, cast
 from generators.constants import EMPTY_LINE
 from generators.helpers import map_type, to_pascal_case, unwrap_type
 from generators.imports import Imports
@@ -303,6 +303,15 @@ class Method:
         self.arguments_exists = "fields" in raw_method
 
     def __find_input_file_field(self, type_: Type, types: list[Type], _level: int = 1) -> FindState:
+        if type_.is_supertype:
+            for subtype in cast(list[str], type_.subtypes):
+                subtype = next(
+                    filter(lambda maybe_subtype: maybe_subtype.name == subtype, types))
+
+                result = self.__find_input_file_field(subtype, types, _level + 1)
+                if result != FindState.NotFound:
+                    return result
+
         for field in type_.fields:
             unwrapped_type = unwrap_type(field.type_)
 
@@ -315,7 +324,10 @@ class Method:
             if inner_type is None:
                 continue
 
-            self.__find_input_file_field(inner_type, types, _level + 1)
+            result = self.__find_input_file_field(
+                inner_type, types, _level + 1)
+            if result != FindState.NotFound:
+                return result
 
         return FindState.NotFound
 
