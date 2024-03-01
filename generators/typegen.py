@@ -47,7 +47,7 @@ class Field:
             field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
-    def to_text(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
+    def to_java_code(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
         def get_constant_if_matches() -> None | str:
             regexs = [re.compile("must be \\w*$"), re.compile("always \"\\w*\"$")]
             for regex in regexs:
@@ -272,7 +272,7 @@ class TypeGenerator:
 
         return lines
 
-    def to_text(self, base_packagename: str) -> list[str]:
+    def to_java_code(self, base_packagename: str) -> list[str]:
         lines = [
             f"package {base_packagename}.{self.type_classification.package()};\n"
         ]
@@ -315,7 +315,7 @@ class TypeGenerator:
 
         last = len(self.fields) - 1
         for i, field in enumerate(self.fields):
-            lines.extend(field.to_text(
+            lines.extend(field.to_java_code(
                 indent_spaces, self.type_classification))
             if i != last:
                 lines.append(empty_line)

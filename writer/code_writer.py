@@ -30,4 +30,4 @@ class CodeWriter:
 
             filename = extended_path + typegen.name + ".java"
             with open(filename, "w") as java_file:
-                java_file.writelines(typegen.to_text(self.base_packagename))
+                java_file.writelines(type_.to_java_code(self.base_packagename))
