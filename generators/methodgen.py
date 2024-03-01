@@ -298,7 +298,7 @@ class Method:
 
         self.return_type, self.imports = map_type(
             raw_method["returns"], required=False)
-        self.arguments_exists = raw_method["fields"] is not None
+        self.arguments_exists = "fields" in raw_method
 
     def __find_input_file_field(self, type_: Type, types: list[Type], _level: int = 1) -> FindState:
         for field in type_.fields:
