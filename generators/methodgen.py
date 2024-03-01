@@ -338,7 +338,7 @@ class Method:
                 raise Exception(
                     "The enum FindState match is not exhaustive!")
 
-    def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
+    def create_body(self, types: list[Type]) -> list[str]:
         indent_spaces = 2
         indent = " " * indent_spaces
 
@@ -374,7 +374,7 @@ class Method:
             f"{indent}}}\n",
         ])
 
-        return lines, self.imports
+        return lines
 
 
 class MethodGenerator:
