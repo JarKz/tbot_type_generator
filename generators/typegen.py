@@ -291,7 +291,7 @@ class Type:
         lines = [
             f"package {base_packagename}.{self.type_classification.package()};\n"
         ]
-        empty_line = "\n"
+        EMPTY_LINE = "\n"
 
         indent_spaces = 2
 
@@ -304,12 +304,12 @@ class Type:
             rhs), all_imports, self.imports)
 
         if len(self.imports) > 0:
-            lines.append(empty_line)
+            lines.append(EMPTY_LINE)
             for used_import in self.imports:
                 lines.append(used_import + "\n")
 
         for _ in range(2):
-            lines.append(empty_line)
+            lines.append(EMPTY_LINE)
 
         lines.append(generate_description(self.description, indent_spaces=0))
 
@@ -326,20 +326,20 @@ class Type:
 
         classname += " {\n"
         lines.append(classname)
-        lines.append(empty_line)
+        lines.append(EMPTY_LINE)
 
         last = len(self.fields) - 1
         for i, field in enumerate(self.fields):
             lines.extend(field.to_java_code(
                 indent_spaces, self.type_classification))
             if i != last:
-                lines.append(empty_line)
+                lines.append(EMPTY_LINE)
 
-        lines.append(empty_line)
+        lines.append(EMPTY_LINE)
         lines.extend(equals_method)
-        lines.append(empty_line)
+        lines.append(EMPTY_LINE)
         lines.extend(hash_code_method)
-        lines.append(empty_line)
+        lines.append(EMPTY_LINE)
         lines.extend(to_string_method)
 
         lines.append("}")
