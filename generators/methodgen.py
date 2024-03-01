@@ -341,11 +341,20 @@ class Method:
     def create_body(self, types: list[Type], indent_spaces: int) -> list[str]:
         indent = " " * indent_spaces
 
-        lines = [
-            f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
+        lines: list[str]
+        if self.arguments_exists:
+            lines = [
+                f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
+            ]
+        else:
+            lines = [
+                f"{indent}public {self.return_type} {self.name}() {{\n",
+            ]
+
+        lines.extend([
             f"{indent * 2}final var methodName = \"{self.name}\";\n",
             EMPTY_LINE
-        ]
+        ])
 
         if self.arguments_exists:
             type_ = next(filter(lambda type_: type_.name ==
