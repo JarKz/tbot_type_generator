@@ -47,6 +47,13 @@ def add_method_params(writer: CodeWriter, specs: dict):
             method_params["name"]) + "Parameters"
         writer.add_type(method_params, TypeClassification.MethodParameters)
 
+def add_methods(writer: CodeWriter, specs: dict):
+    method_names = specs["methods"].keys()
+    methods = map(lambda name: specs["methods"][name], method_names)
+
+    for method in methods:
+        writer.add_method(method)
+
 
 if __name__ == "__main__":
     api_json_file = "api.json"
@@ -61,5 +68,6 @@ if __name__ == "__main__":
 
         add_datatypes(writer, api_specs)
         add_method_params(writer, api_specs)
+        add_methods(writer, api_specs)
 
         writer.write_all()
