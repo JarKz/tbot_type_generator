@@ -316,6 +316,27 @@ class Method:
 
         return FindState.NotFound
 
+    def __build_entity_and_request_lines(self, indent: str, state: FindState) -> list[str]:
+        match state:
+            case FindState.NotFound:
+                return [
+                    f"{indent}final var entity = new StringEntity(gson.toJson(params), Charset.forName(\"UTF-8\");\n"
+                    f"{indent}var response = makeRequest(methodName, entity);\n"
+                ]
+            case FindState.Found:
+                return [
+                    f"{indent}final var entity = buildMultipartEntity(params);\n"
+                    f"{indent}var response = makeMultipartFormRequest(methodName, entity);\n"
+                ]
+            case FindState.DeepFound:
+                return [
+                    f"{indent}final var entity = buildExtendedMultipartEntity(params);\n"
+                    f"{indent}var response = makeMultipartFormRequest(methodName, entity);\n"
+                ]
+            case _:
+                raise Exception(
+                    "The enum FindState match is not exhaustive!")
+
     def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
         indent_spaces = 2
         indent = " " * indent_spaces
@@ -327,17 +348,12 @@ class Method:
             EMPTY_LINE
         ]
 
-        # TODO: Add check for InputFile and put relevant lines:
-        # - makeRequest for simple types
-        # - makeMultipartFormRequest for complex types
-        # and so need define:
-        # - buildMultipartEntity
-        # - buildExtendedMultipartEntity
-        # But, be careful with simple types, it needs non-empty StringEntity there!
         if self.arguments_exists:
             type_ = next(filter(lambda type_: type_.name ==
                          self.parameter_name, types))
             state = self.__find_input_file_field(type_, types)
+            lines.extend(
+                self.__build_entity_and_request_lines(indent * 2, state))
         else:
             lines.extend([
                 f"{indent * 2}final var entity = new StringEntity(\"\", Charset.forName(\"UTF-8\"));\n",
