@@ -277,7 +277,7 @@ class Method:
     href: str
     return_type: str
     imports: set[str]
-    is_empty: bool
+    arguments_exists: bool
 
     def __init__(self, raw_method: dict) -> None:
         self.__parse(raw_method)
@@ -290,7 +290,7 @@ class Method:
 
         self.return_type, self.imports = map_type(
             raw_method["returns"], required=False)
-        self.is_empty = raw_method["fields"] is None
+        self.arguments_exists = raw_method["fields"] is not None
 
     def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
         indent_spaces = 2
@@ -310,7 +310,9 @@ class Method:
         # - buildMultipartEntity
         # - buildExtendedMultipartEntity
         # But, be careful with simple types, it needs non-empty StringEntity there!
-        if self.is_empty:
+        if self.arguments_exists:
+            ...
+        else:
             lines.extend([
                 f"{indent * 2}final var entity = new StringEntity(\"\", Charset.forName(\"UTF-8\"));\n",
                 f"{indent * 2}var response = makeRequest(methodName, entity);\n"
