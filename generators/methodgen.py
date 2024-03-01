@@ -1,5 +1,5 @@
 
-from generators.typegen import TypeGenerator
+from generators.typegen import Type
 
 
 BOT_API_CLASS = [
@@ -7,7 +7,7 @@ BOT_API_CLASS = [
 ]
 
 
-class MethodGenerator:
+class Method:
     name: str
     parameter_name: str
     return_type: str
@@ -19,9 +19,9 @@ class MethodGenerator:
         ...
 
 
-class MethodGenerators:
-    typegens: list[TypeGenerator]
+class MethodGenerator:
+    types: list[Type]
 
-    def __init__(self, typegens: list[TypeGenerator]) -> None:
-        self.typegens = typegens
+    def __init__(self, types: list[Type]) -> None:
+        self.types = types
 
