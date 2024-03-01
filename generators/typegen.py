@@ -113,10 +113,10 @@ class TypeGenerator:
             "description": "",
             "subtypes": types,
         }
-        if all(map(lambda typename: typename.startswith("Array of"), types)):
-            new_type = "Array of " + name
+        if all(map(lambda typename: typename.startswith(ARRAY_OF), types)):
+            new_type = ARRAY_OF + name
             data["subtypes"] = list(
-                map(lambda type_: type_[len("Array of "):], types))
+                map(lambda type_: type_[len(ARRAY_OF):], types))
 
         ADDITIONAL_TYPES.append(TypeGenerator(
             data, TypeGenerator.DEFAULT_TYPE_CLASSIFICATION))

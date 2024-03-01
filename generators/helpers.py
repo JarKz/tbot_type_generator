@@ -1,8 +1,9 @@
+from typing import Final
 from .imports import Imports
 
+ARRAY_OF: Final[str] = "Array of "
 
 def map_type(original_types: list[str], required: bool, field_description: str = "") -> tuple[str, set[str]]:
-    ARRAY_OF_LITERAL = "Array of "
     return_value = {
         True: {
             "True": "boolean",
@@ -20,9 +21,9 @@ def map_type(original_types: list[str], required: bool, field_description: str =
 
     def map_array_type(original_type: str) -> tuple[str, set[str]]:
         level = 0
-        while original_type.startswith(ARRAY_OF_LITERAL):
+        while original_type.startswith(ARRAY_OF):
             level += 1
-            original_type = original_type[len(ARRAY_OF_LITERAL):]
+            original_type = original_type[len(ARRAY_OF):]
 
         original_type = return_value[False][original_type] if original_type in return_value[False] else original_type
         for _ in range(level):
@@ -45,7 +46,7 @@ def map_type(original_types: list[str], required: bool, field_description: str =
 
         if original_type in return_value[required]:
             return (return_value[required][original_type], set())
-        if original_type.startswith(ARRAY_OF_LITERAL):
+        if original_type.startswith(ARRAY_OF):
             return map_array_type(original_type)
 
         return (original_type, set())
