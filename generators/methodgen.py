@@ -28,6 +28,7 @@ IMPORTS = {
     "import org.apache.http.entity.mime.MultipartEntityBuilder;",
     "import org.apache.http.impl.client.CloseableHttpClient;",
     "import org.apache.http.impl.client.HttpClients;",
+    Imports.Id.as_line(),
     Imports.InputFile.as_line(),
 }
 
