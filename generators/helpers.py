@@ -28,7 +28,7 @@ def map_type(original_types: list[str], required: bool, field_description: str =
         for _ in range(level):
             original_type = f"List<{original_type}>"
 
-        return (original_type, {Imports.List.value})
+        return (original_type, {Imports.List.as_line()})
 
     def handle_type_by_description(original_type: str, description: str) -> str:
         if "attach://" in description and original_type == "String":

@@ -34,11 +34,11 @@ class Field:
         self.required = field["required"]
         if self.required:
             self.annotations.append("@NotNull")
-            self.imports.add(Imports.NotNull.value)
+            self.imports.add(Imports.NotNull.as_line())
 
         if self.camel_cased_name != self.name:
             self.annotations.append(f"@SerializedName(\"{self.name}\")")
-            self.imports.add(Imports.SerializedName.value)
+            self.imports.add(Imports.SerializedName.as_line())
 
         self.type_, imports = map_type(
             field["types"], self.required, self.description)
@@ -205,7 +205,7 @@ class TypeGenerator:
         lines.append(f"{indent}}}\n")
 
         if exists_objects:
-            self.imports.add(Imports.Objects.value)
+            self.imports.add(Imports.Objects.as_line())
 
         return lines
 
@@ -229,7 +229,7 @@ class TypeGenerator:
         lines.append(f"{indent * 2} return Objects.hash({fields});\n")
         lines.append(f"{indent}}}\n")
 
-        self.imports.add(Imports.Objects.value)
+        self.imports.add(Imports.Objects.as_line())
 
         return lines
 
