@@ -338,8 +338,7 @@ class Method:
                 raise Exception(
                     "The enum FindState match is not exhaustive!")
 
-    def create_body(self, types: list[Type]) -> list[str]:
-        indent_spaces = 2
+    def create_body(self, types: list[Type], indent_spaces: int) -> list[str]:
         indent = " " * indent_spaces
 
         lines = [
