@@ -1,7 +1,9 @@
 from enum import Enum
+from functools import reduce
+from typing import Iterable
 from generators.constants import EMPTY_LINE
 from generators.helpers import map_type, to_pascal_case, unwrap_type
-from generators.typegen import Type
+from generators.typegen import Type, TypeClassification
 
 PACKAGE = "core"
 
@@ -386,6 +388,75 @@ class Method:
 
 class MethodGenerator:
     types: list[Type]
+    methods: list[Method]
 
-    def __init__(self, types: list[Type]) -> None:
+    def __init__(self) -> None:
+        self.methods = []
+
+    def set_types(self, types: list[Type]) -> None:
         self.types = types
+
+    def add_method(self, raw_method: dict) -> None:
+        self.methods.append(Method(raw_method))
+
+    def build_java_class(self, base_packagename: str) -> list[str]:
+
+        def append_new_lines(data: Iterable[str]) -> list[str]:
+            return list(map(lambda line: line + "\n", data))
+
+        def get_import_params(base_packagename: str, types: list[Type]) -> list[str]:
+            parameters = filter(lambda type_: type_.type_classification ==
+                                TypeClassification.MethodParameters, types)
+            return list(map(
+                lambda param: f"import {base_packagename}.{param.type_classification.package()}.{param.name};\n", parameters))
+
+        def get_import_types(base_packagename: str, methods: list[Method], types: list[Type]):
+            imports = set()
+            for method in methods:
+                type_to_import = next(
+                    filter(lambda type_: type_.name == method.return_type, types), None)
+
+                if type_to_import is None:
+                    continue
+
+                imports.add(
+                    f"import {base_packagename}.{type_to_import.type_classification.package()}.{type_to_import.name};\n")
+
+            return imports
+
+        lines: list[str] = [
+            f"package {base_packagename}.{PACKAGE};\n",
+            EMPTY_LINE
+        ]
+
+        lines.extend(append_new_lines(IMPORTS))
+
+        import_set = map(lambda method: method.imports, self.methods)
+        specific_imports = reduce(
+            lambda i1, i2: i1.union(i2), import_set, set())
+        lines.extend(append_new_lines(specific_imports))
+
+        lines.extend(get_import_params(base_packagename, self.types))
+        lines.extend(get_import_types(
+            base_packagename, self.methods, self.types))
+
+        lines.append(EMPTY_LINE)
+        lines.extend(append_new_lines(CLASS_DOCUMENTATION))
+
+        lines.extend([
+            EMPTY_LINE,
+            f"public final class {CLASSNAME} {{\n",
+            EMPTY_LINE
+        ])
+
+        lines.extend(append_new_lines(DEFAULT_LINES_AT_START))
+        lines.append(EMPTY_LINE)
+
+        for method in self.methods:
+            lines.extend(method.create_body(self.types,  indent_spaces=2))
+            lines.append(EMPTY_LINE)
+
+        lines.extend(append_new_lines(DEFAULT_LINES_AT_END))
+        lines.append("}\n")
+
+        return lines
