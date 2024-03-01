@@ -413,8 +413,9 @@ class MethodGenerator:
         def get_import_types(base_packagename: str, methods: list[Method], types: list[Type]):
             imports = set()
             for method in methods:
+                return_type = unwrap_type(method.return_type)
                 type_to_import = next(
-                    filter(lambda type_: type_.name == method.return_type, types), None)
+                    filter(lambda type_: type_.name == return_type, types), None)
 
                 if type_to_import is None:
                     continue
