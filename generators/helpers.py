@@ -1,7 +1,6 @@
-from typing import Final
+from generators.constants import ARRAY_OF
 from .imports import Imports
 
-ARRAY_OF: Final[str] = "Array of "
 
 def map_type(original_types: list[str], required: bool, field_description: str = "") -> tuple[str, set[str]]:
     return_value = {
