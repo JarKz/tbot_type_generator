@@ -25,9 +25,9 @@ class Field:
     imports: set[str]
 
     def __init__(self, field: dict) -> None:
-        self.parse(field)
+        self.__parse(field)
 
-    def parse(self, field: dict):
+    def __parse(self, field: dict):
         self.name = field["name"]
         self.description = field["description"]
         self.camel_cased_name = to_camel_case(self.name)
@@ -100,9 +100,9 @@ class Type:
 
     def __init__(self, telegram_type: dict, type_classification: None | TypeClassification = None):
         if type_classification is None:
-            self.parse(telegram_type, self.DEFAULT_TYPE_CLASSIFICATION)
+            self.__parse(telegram_type, self.DEFAULT_TYPE_CLASSIFICATION)
         else:
-            self.parse(telegram_type, type_classification)
+            self.__parse(telegram_type, type_classification)
 
     def __create_new_interface(self, raw_field: dict) -> str:
         types: list[str] = raw_field["types"]
@@ -155,7 +155,7 @@ class Type:
 
         self.fields = fields
 
-    def parse(self, telegram_type: dict, type_classification: TypeClassification):
+    def __parse(self, telegram_type: dict, type_classification: TypeClassification):
         self.type_classification = type_classification
 
         self.name = telegram_type["name"]
