@@ -49,7 +49,8 @@ class Field:
 
     def to_java_code(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
         def get_constant_if_matches() -> None | str:
-            regexs = [re.compile("must be \\w*$"), re.compile("always \"\\w*\"$")]
+            regexs = [re.compile("must be \\w*$"),
+                      re.compile("always \"\\w*\"$")]
             for regex in regexs:
                 match = regex.findall(self.description)
                 if match:
@@ -85,11 +86,11 @@ class Field:
         return lines
 
 
-class TypeGenerator:
+class Type:
     name: str
     description: list[str]
     fields: list[Field]
-    is_subtype: bool
+    is_supertype: bool
     subtype_of: None | list[str]
     subtypes: None | list[str]
     imports: set[str]
@@ -118,8 +119,8 @@ class TypeGenerator:
             data["subtypes"] = list(
                 map(lambda type_: type_[len(ARRAY_OF):], types))
 
-        ADDITIONAL_TYPES.append(TypeGenerator(
-            data, TypeGenerator.DEFAULT_TYPE_CLASSIFICATION))
+        GROUPED_INTERFACES.append(Type(
+            data, Type.DEFAULT_TYPE_CLASSIFICATION))
         SPECIFIC_TYPES[frozenset(types)] = name
 
         return new_type
@@ -163,16 +164,15 @@ class TypeGenerator:
         self.subtypes = telegram_type.get("subtypes")
         if self.subtypes is None:
 
-            self.is_subtype = True
+            self.is_supertype = False
 
             self.subtype_of = telegram_type.get("subtype_of")
-            if self.subtype_of is not None:
-                if len(self.subtype_of) > 1:
-                    raise Exception(
-                        "Expected one subtype_of, but given many subtype_of!")
-                self.subtype_of = self.subtype_of
+            if self.subtype_of is not None and len(self.subtype_of) > 1:
+                raise Exception(
+                    "Expected one subtype_of, but given many subtype_of!")
+
         else:
-            self.is_subtype = False
+            self.is_supertype = True
 
         self.imports = set()
         self.__parse_fields(telegram_type.get("fields", []))
@@ -313,7 +313,7 @@ class TypeGenerator:
 
         lines.append(generate_description(self.description, indent_spaces=0))
 
-        if not self.is_subtype:
+        if self.is_supertype:
             subtypes = ", ".join(cast(list[str], self.subtypes))
             lines.append(
                 f"sealed public interface {self.name} permits {subtypes} {{}}")
@@ -348,76 +348,79 @@ class TypeGenerator:
 
 
 SPECIFIC_TYPES: dict[frozenset[str], str] = {}
-GENERATOR_STORAGE: list[TypeGenerator] = []
-ADDITIONAL_TYPES: list[TypeGenerator] = []
+TYPE_STORAGE: list[Type] = []
+GROUPED_INTERFACES: list[Type] = []
 DYNAMIC_IMPORTS: dict[str, TypeClassification] = {
     "InputFile": TypeClassification.DataType,
     "Id": TypeClassification.DataType,
 }
 
 
-class TypeGenerators:
+class TypeGenerator:
     base_packagename: str
 
     def __init__(self, base_packagename: str) -> None:
         self.base_packagename = base_packagename
 
-    def add_typegen(self, telegram_type: dict, type_classification: TypeClassification):
-        typegen = TypeGenerator(telegram_type, type_classification)
+    @staticmethod
+    def __put_dynamic_import_if_absent(type_: Type) -> None:
+        if type_.name not in DYNAMIC_IMPORTS:
+            DYNAMIC_IMPORTS[type_.name] = type_.type_classification
 
-        if typegen.name not in DYNAMIC_IMPORTS:
-            DYNAMIC_IMPORTS[typegen.name] = type_classification
+    def add_type(self, telegram_type: dict, type_classification: TypeClassification):
+        type_ = Type(telegram_type, type_classification)
 
-        GENERATOR_STORAGE.append(typegen)
+        TypeGenerator.__put_dynamic_import_if_absent(type_)
 
-    def __append_additional_types(self):
-        for additional_type in ADDITIONAL_TYPES:
-            if additional_type.name not in DYNAMIC_IMPORTS:
-                DYNAMIC_IMPORTS[additional_type.name] = additional_type.type_classification
+        TYPE_STORAGE.append(type_)
 
-            if not additional_type.is_subtype:
-                for subtype in cast(list[str], additional_type.subtypes):
+    def __append_grouped_interfaces(self) -> None:
+        def bind(type_: Type, supertype: Type) -> None:
+            if type_.subtype_of is not None:
+                type_.subtype_of.append(supertype.name)
+            else:
+                type_.subtype_of = [supertype.name]
 
-                    for typegen in filter(lambda typegen: typegen.name == subtype, GENERATOR_STORAGE):
-                        if typegen.subtype_of is not None:
-                            typegen.subtype_of.append(additional_type.name)
-                        else:
-                            typegen.subtype_of = [additional_type.name]
+        def bind_interface_and_subtypes(interface: Type):
+            for subtype in cast(list[str], interface.subtypes):
 
-                        if typegen.type_classification != additional_type.type_classification:
-                            typegen.imports.add(
-                                f"import {self.base_packagename}.{additional_type.type_classification.value}.{additional_type.name};")
-                            additional_type.imports.add(
-                                f"import {self.base_packagename}.{typegen.type_classification.value}.{typegen.name};")
+                for type_ in filter(lambda type_: type_.name == subtype, TYPE_STORAGE):
+                    bind(type_, interface)
 
-            GENERATOR_STORAGE.append(additional_type)
+        for new_interface in GROUPED_INTERFACES:
+            TypeGenerator.__put_dynamic_import_if_absent(new_interface)
 
-        ADDITIONAL_TYPES.clear()
+            if new_interface.is_supertype:
+                bind_interface_and_subtypes(new_interface)
+
+            TYPE_STORAGE.append(new_interface)
+
+        GROUPED_INTERFACES.clear()
 
     def __ensure_dynamic_imports(self):
-        for typegen in GENERATOR_STORAGE:
-            typegen = cast(TypeGenerator, typegen)
+        for type_ in TYPE_STORAGE:
+            type_ = cast(Type, type_)
 
-            for field in typegen.fields:
+            for field in type_.fields:
 
                 base_type = unwrap_type(field.type_)
                 same_type = base_type in DYNAMIC_IMPORTS
                 if not same_type:
                     continue
 
-                if typegen.type_classification == DYNAMIC_IMPORTS[base_type]:
+                if type_.type_classification == DYNAMIC_IMPORTS[base_type]:
                     continue
 
                 other_package = DYNAMIC_IMPORTS[base_type].package()
-                typegen.imports.add(
+                type_.imports.add(
                     f"import {self.base_packagename}.{other_package}.{base_type};")
 
     def __ensure_correctness(self):
-        self.__append_additional_types()
+        self.__append_grouped_interfaces()
         self.__ensure_dynamic_imports()
 
-    def typegens(self) -> list[TypeGenerator]:
+    def types(self) -> list[Type]:
         self.__ensure_correctness()
-        typegens = copy(GENERATOR_STORAGE)
-        GENERATOR_STORAGE.clear()
-        return typegens
+        types = copy(TYPE_STORAGE)
+        TYPE_STORAGE.clear()
+        return types
