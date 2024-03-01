@@ -1,4 +1,4 @@
-
+from generators.helpers import map_type, to_pascal_case
 from generators.typegen import Type
 
 PACKAGE = "core"
@@ -273,13 +273,64 @@ DEFAULT_LINES_AT_END = [
 class Method:
     name: str
     parameter_name: str
+    description: str
+    href: str
     return_type: str
+    imports: set[str]
+    is_empty: bool
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, raw_method: dict) -> None:
+        self.__parse(raw_method)
 
-    def create_body(self) -> list[str]:
-        ...
+    def __parse(self, raw_method: dict) -> None:
+        self.name = raw_method["name"]
+        self.parameter_name = to_pascal_case(self.name) + "Parameters"
+        self.href = raw_method["href"]
+        self.description = raw_method["description"]
+
+        self.return_type, self.imports = map_type(
+            raw_method["returns"], required=False)
+        self.is_empty = raw_method["fields"] is None
+
+    def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
+        indent_spaces = 2
+        indent = " " * indent_spaces
+        EMPTY_LINE = "\n"
+
+        lines = [
+            f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
+            f"{indent * 2}final var methodName = \"{self.name}\";\n",
+            EMPTY_LINE
+        ]
+
+        # TODO: Add check for InputFile and put relevant lines:
+        # - makeRequest for simple types
+        # - makeMultipartFormRequest for complex types
+        # and so need define:
+        # - buildMultipartEntity
+        # - buildExtendedMultipartEntity
+        # But, be careful with simple types, it needs non-empty StringEntity there!
+        if self.is_empty:
+            lines.extend([
+                f"{indent * 2}final var entity = new StringEntity(\"\", Charset.forName(\"UTF-8\"));\n",
+                f"{indent * 2}var response = makeRequest(methodName, entity);\n"
+            ])
+
+        lines.extend([
+            EMPTY_LINE,
+            f"{indent * 2}if (!response.isOk()) {{\n",
+            f"{indent * 3}raiseRuntimeException(response);\n",
+            f"{indent * 2}}}\n",
+            EMPTY_LINE,
+            f"{indent * 2}var type = new TypeToken<{self.return_type}>() {{}}.getType();\n",
+            f"{indent * 2}var jsonElement =\n",
+            f"{indent * 4}response.getResult().orElseThrow(() -> new RuntimeException(\"Invalid result of response.\"));\n",
+            EMPTY_LINE,
+            f"{indent * 2}return gson.fromJson(jsonElement);\n",
+            f"{indent}}}\n",
+        ])
+
+        return lines, self.imports
 
 
 class MethodGenerator:
@@ -287,4 +338,3 @@ class MethodGenerator:
 
     def __init__(self, types: list[Type]) -> None:
         self.types = types
-
