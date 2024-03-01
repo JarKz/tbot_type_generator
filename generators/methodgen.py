@@ -1,4 +1,5 @@
-from generators.helpers import map_type, to_pascal_case
+from enum import Enum
+from generators.helpers import map_type, to_pascal_case, unwrap_type
 from generators.typegen import Type
 
 PACKAGE = "core"
