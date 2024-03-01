@@ -23,7 +23,7 @@ class CodeWriter:
     def write_all(self):
         for typegen in self.type_geneartors.typegens():
             extended_path = self.outdir + \
-                typegen.type_classification.value.replace(".", "/") + "/"
+                type_.type_classification.package().replace(".", "/") + "/"
 
             if not os.path.exists(extended_path):
                 os.makedirs(extended_path)

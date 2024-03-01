@@ -11,6 +11,9 @@ class TypeClassification(Enum):
     DataType = "types"
     MethodParameters = "core.parameters"
 
+    def package(self) -> str:
+        return self.value
+
 
 class Field:
     name: str
@@ -271,7 +274,7 @@ class TypeGenerator:
 
     def to_text(self, base_packagename: str) -> list[str]:
         lines = [
-            f"package {base_packagename}.{self.type_classification.value};\n"
+            f"package {base_packagename}.{self.type_classification.package()};\n"
         ]
         empty_line = "\n"
 
@@ -390,7 +393,7 @@ class TypeGenerators:
                 if typegen.type_classification == DYNAMIC_IMPORTS[base_type]:
                     continue
 
-                other_package = DYNAMIC_IMPORTS[base_type].value
+                other_package = DYNAMIC_IMPORTS[base_type].package()
                 typegen.imports.add(
                     f"import {self.base_packagename}.{other_package}.{base_type};")
 
