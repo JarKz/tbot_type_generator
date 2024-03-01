@@ -270,6 +270,12 @@ DEFAULT_LINES_AT_END = [
 ]
 
 
+class FindState(Enum):
+    NotFound = 0
+    Found = 1
+    DeepFound = 2
+
+
 class Method:
     name: str
     parameter_name: str
@@ -292,6 +298,23 @@ class Method:
             raw_method["returns"], required=False)
         self.arguments_exists = raw_method["fields"] is not None
 
+    def __find_input_file_field(self, type_: Type, types: list[Type], _level: int = 1) -> FindState:
+        for field in type_.fields:
+            unwrapped_type = unwrap_type(field.type_)
+
+            if unwrapped_type == "InputFile":
+                return FindState(min(_level, 2))
+
+            inner_type = next(
+                filter(lambda inner_type: inner_type.name == unwrapped_type, types), None)
+
+            if inner_type is None:
+                continue
+
+            self.__find_input_file_field(inner_type, types, _level + 1)
+
+        return FindState.NotFound
+
     def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
         indent_spaces = 2
         indent = " " * indent_spaces
@@ -311,7 +334,9 @@ class Method:
         # - buildExtendedMultipartEntity
         # But, be careful with simple types, it needs non-empty StringEntity there!
         if self.arguments_exists:
-            ...
+            type_ = next(filter(lambda type_: type_.name ==
+                         self.parameter_name, types))
+            state = self.__find_input_file_field(type_, types)
         else:
             lines.extend([
                 f"{indent * 2}final var entity = new StringEntity(\"\", Charset.forName(\"UTF-8\"));\n",
