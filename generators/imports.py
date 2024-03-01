@@ -5,6 +5,7 @@ class Imports(Enum):
     NotNull = "import jakarta.validation.constraints.NotNull;"
     Objects = "import java.util.Objects;"
     List = "import java.util.List;"
+    MessageOrBoolean = "import jarkz.tbot.types.MessageOrBoolean;"
 
     def as_line(self) -> str:
         return self.value
