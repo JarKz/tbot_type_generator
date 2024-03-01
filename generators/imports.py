@@ -6,6 +6,7 @@ class Imports(Enum):
     Objects = "import java.util.Objects;"
     List = "import java.util.List;"
     MessageOrBoolean = "import jarkz.tbot.types.MessageOrBoolean;"
+    InputFile = "import jarkz.tbot.types.InputFile;"
 
     def as_line(self) -> str:
         return self.value

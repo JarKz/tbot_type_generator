@@ -3,6 +3,7 @@ from functools import reduce
 from typing import Iterable
 from generators.constants import EMPTY_LINE
 from generators.helpers import map_type, to_pascal_case, unwrap_type
+from generators.imports import Imports
 from generators.typegen import Type, TypeClassification
 
 PACKAGE = "core"
@@ -17,7 +18,6 @@ IMPORTS = {
     "import java.net.URI;",
     "import java.nio.charset.Charset;",
     "import java.util.LinkedList;",
-    "import java.util.List;",
     "import java.util.Set;",
     "import java.util.function.Consumer;",
     "import org.apache.http.HttpEntity;",
@@ -28,6 +28,7 @@ IMPORTS = {
     "import org.apache.http.entity.mime.MultipartEntityBuilder;",
     "import org.apache.http.impl.client.CloseableHttpClient;",
     "import org.apache.http.impl.client.HttpClients;",
+    Imports.InputFile.as_line(),
 }
 
 CLASSNAME = "BotApi"
