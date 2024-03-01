@@ -5,6 +5,7 @@ from enum import Enum
 import re
 
 from .helpers import *
+from generators.constants import EMPTY_LINE, ARRAY_OF
 
 
 class TypeClassification(Enum):
@@ -291,8 +292,6 @@ class Type:
         lines = [
             f"package {base_packagename}.{self.type_classification.package()};\n"
         ]
-        EMPTY_LINE = "\n"
-
         indent_spaces = 2
 
         equals_method = self.make_method_equals(indent_spaces)

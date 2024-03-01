@@ -1,4 +1,5 @@
 from enum import Enum
+from generators.constants import EMPTY_LINE
 from generators.helpers import map_type, to_pascal_case, unwrap_type
 from generators.typegen import Type
 
@@ -340,7 +341,6 @@ class Method:
     def create_body(self, types: list[Type]) -> tuple[list[str], set[str]]:
         indent_spaces = 2
         indent = " " * indent_spaces
-        EMPTY_LINE = "\n"
 
         lines = [
             f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
