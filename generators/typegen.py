@@ -183,13 +183,17 @@ class TypeGenerator:
             f"{indent}@Override\n",
             f"{indent}public final boolean equals(Object obj) {{\n"
             f"{indent * 2}if (this == obj) return true;\n"
-            f"{indent * 2}if (!(obj instanceof {self.name} other)) return false;\n"
         ]
 
         if not self.fields:
+            lines.append(
+                f"{indent * 2}if (!(obj instanceof {self.name})) return false;\n")
             lines.append(f"{indent * 2}return true;\n")
             lines.append(f"{indent}}}\n")
             return lines
+
+        lines.append(
+            f"{indent * 2}if (!(obj instanceof {self.name} other)) return false;\n")
 
         exists_objects = False
         last = len(self.fields) - 1
