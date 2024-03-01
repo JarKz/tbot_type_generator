@@ -54,6 +54,8 @@ def map_type(original_types: list[str], required: bool, field_description: str =
         return ("Id", set())
     if original_types == ["InputFile", "String"]:
         return ("InputFile", set())
+    if original_types == ["Message", "Boolean"]:
+        return ("MessageOrBoolean", {Imports.MessageOrBoolean.as_line()})
 
     raise Exception(f"Unknown type: {original_types}!")
 

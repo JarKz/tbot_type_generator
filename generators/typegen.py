@@ -352,6 +352,7 @@ GROUPED_INTERFACES: list[Type] = []
 DYNAMIC_IMPORTS: dict[str, TypeClassification] = {
     "InputFile": TypeClassification.DataType,
     "Id": TypeClassification.DataType,
+    "MessageOrBoolean": TypeClassification.DataType,
 }
 
 
