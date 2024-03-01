@@ -1,4 +1,5 @@
 from requests import get
+from copy import deepcopy
 import json
 
 from generators.typegen import TypeClassification
@@ -36,7 +37,7 @@ def add_datatypes(writer: CodeWriter, specs: dict):
 
 def add_method_params(writer: CodeWriter, specs: dict):
     method_names = specs["methods"].keys()
-    methods = map(lambda name: specs["methods"][name], method_names)
+    methods = map(lambda name: deepcopy(specs["methods"][name]), method_names)
 
     for method_params in methods:
         if "fields" not in method_params:
