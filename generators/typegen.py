@@ -125,21 +125,32 @@ class TypeGenerator:
         return new_type
 
     def __parse_fields(self, raw_fields: list[dict]):
-        fields = []
+        def datatype_fields(raw_fields: list[dict]) -> list[Field]:
+            fields = map(lambda raw_field: Field(raw_field), raw_fields)
+            return list(fields)
+
+        def method_parameters_fields(raw_fields: list[dict]) -> list[Field]:
+            fields = []
+            for raw_field in raw_fields:
+                types = frozenset(raw_field["types"])
+
+                if types in SPECIFIC_TYPES:
+                    raw_field["types"] = [SPECIFIC_TYPES[types]]
+                elif len(types) > 2:
+                    new_type = self.__create_new_interface(raw_field)
+                    raw_field["types"] = [new_type]
+
+                fields.append(Field(raw_field))
+            return fields
+
+        fields: list[Field]
         match self.type_classification:
             case TypeClassification.DataType:
-                fields = list(
-                    map(lambda raw_field: Field(raw_field), raw_fields))
+                fields = datatype_fields(raw_fields)
             case TypeClassification.MethodParameters:
-                for raw_field in raw_fields:
-                    types = frozenset(raw_field["types"])
-                    if types in SPECIFIC_TYPES:
-                        raw_field["types"] = [SPECIFIC_TYPES[types]]
-                    elif len(types) > 2:
-                        new_type = self.__create_new_interface(raw_field)
-                        raw_field["types"] = [new_type]
-
-                    fields.append(Field(raw_field))
+                fields = method_parameters_fields(raw_fields)
+            case _:
+                raise Exception("Non-exhaustive enum TypeClassification!")
 
         self.fields = fields
 
