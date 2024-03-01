@@ -379,7 +379,7 @@ class Method:
             f"{indent * 2}var jsonElement =\n",
             f"{indent * 4}response.getResult().orElseThrow(() -> new RuntimeException(\"Invalid result of response.\"));\n",
             EMPTY_LINE,
-            f"{indent * 2}return gson.fromJson(jsonElement);\n",
+            f"{indent * 2}return gson.fromJson(jsonElement, type);\n",
             f"{indent}}}\n",
         ])
 
