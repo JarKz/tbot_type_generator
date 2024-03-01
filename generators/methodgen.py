@@ -2,7 +2,7 @@ from enum import Enum
 from functools import reduce
 from typing import Iterable, cast
 from generators.constants import EMPTY_LINE
-from generators.helpers import map_type, to_pascal_case, unwrap_type
+from generators.helpers import generate_description, map_type, to_pascal_case, unwrap_type
 from generators.imports import Imports
 from generators.typegen import Type, TypeClassification
 
@@ -308,7 +308,8 @@ class Method:
                 subtype = next(
                     filter(lambda maybe_subtype: maybe_subtype.name == subtype, types))
 
-                result = self.__find_input_file_field(subtype, types, _level + 1)
+                result = self.__find_input_file_field(
+                    subtype, types, _level + 1)
                 if result != FindState.NotFound:
                     return result
 
@@ -352,18 +353,24 @@ class Method:
                 raise Exception(
                     "The enum FindState match is not exhaustive!")
 
+    def __generate_docs(self, indent_spaces: int) -> str:
+        def wrap_link(link: str) -> str:
+            return f"<a href={link}>Source</a>"
+
+        return generate_description([*self.description, wrap_link(self.href)], indent_spaces)
+
     def create_body(self, types: list[Type], indent_spaces: int) -> list[str]:
         indent = " " * indent_spaces
 
-        lines: list[str]
+        lines: list[str] = [self.__generate_docs(indent_spaces)]
         if self.arguments_exists:
-            lines = [
+            lines.append(
                 f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
-            ]
+            )
         else:
-            lines = [
+            lines.append(
                 f"{indent}public {self.return_type} {self.name}() {{\n",
-            ]
+            )
 
         lines.extend([
             f"{indent * 2}final var methodName = \"{self.name}\";\n",
