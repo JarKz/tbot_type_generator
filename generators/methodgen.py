@@ -374,9 +374,11 @@ class Method:
 
         lines: list[str] = [self.__generate_docs(indent_spaces)]
         if self.arguments_exists:
-            lines.append(
+            lines.extend([
                 f"{indent}public {self.return_type} {self.name}({self.parameter_name} params) {{\n",
-            )
+                f"{indent * 2}TypeVerifier.verify(params);\n",
+                EMPTY_LINE
+            ])
         else:
             lines.append(
                 f"{indent}public {self.return_type} {self.name}() {{\n",
