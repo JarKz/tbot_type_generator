@@ -201,6 +201,9 @@ class Type:
         ]
 
         for field in self.fields:
+            if field.is_constant:
+                continue
+
             methodName = to_pascal_case(field.name)
 
             if field.type_ == "boolean" and methodName.startswith("Is"):
