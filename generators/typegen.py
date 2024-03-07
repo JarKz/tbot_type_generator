@@ -178,6 +178,45 @@ class Type:
         self.imports = set()
         self.__parse_fields(telegram_type.get("fields", []))
 
+    def make_builder(self, indent_spaces: int) -> list[str]:
+        indent = " " * indent_spaces
+        instanceName = "buildingType"
+        lines = [
+            f"{indent}public static final class Builder {{\n",
+            EMPTY_LINE,
+            f"{indent * 2}private {self.name} {instanceName};\n",
+            EMPTY_LINE,
+            f"{indent * 2}public Builder() {{\n",
+            f"{indent * 3}buildingType = new {self.name}();\n",
+            f"{indent * 2}}}\n",
+        ]
+
+        for field in self.fields:
+            methodName = to_pascal_case(field.name)
+
+            if field.type_ == "boolean" and methodName.startswith("Is"):
+                methodName = methodName[2:]
+            methodName = "set" + methodName
+
+            lines.extend([
+                EMPTY_LINE,
+                f"{indent * 2}public Builder {methodName}({field.type_} {field.camel_cased_name}) {{\n",
+                f"{indent * 3}{instanceName}.{field.camel_cased_name} = {field.camel_cased_name};\n"
+                f"{indent * 3}return this;\n",
+                f"{indent * 2}}}\n",
+            ])
+
+        lines.extend([
+            EMPTY_LINE,
+            f"{indent * 2}public {self.name} build() {{\n",
+            f"{indent * 3}return {instanceName};\n",
+            f"{indent * 2}}}\n",
+            f"{indent}}}\n",
+            EMPTY_LINE
+        ])
+
+        return lines
+
     def make_method_equals(self, indent_spaces: int) -> list[str]:
         indent = " " * indent_spaces
         lines = [
@@ -326,6 +365,8 @@ class Type:
         classname += " {\n"
         lines.append(classname)
         lines.append(EMPTY_LINE)
+
+        lines.extend(self.make_builder(indent_spaces))
 
         last = len(self.fields) - 1
         for i, field in enumerate(self.fields):
