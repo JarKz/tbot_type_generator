@@ -25,8 +25,28 @@ class Field:
     annotations: list[str]
     imports: set[str]
 
+    is_constant: bool
+    constant_data: str | None
+
     def __init__(self, field: dict) -> None:
         self.__parse(field)
+
+    def __parse_constant_data(self):
+        regexs = [re.compile("must be \\w*$"),
+                  re.compile("always \"\\w*\"$")]
+        for regex in regexs:
+            match = regex.findall(self.description)
+            if match:
+                data: str = match[0].split(" ")[-1]
+                if not data.startswith('"'):
+                    data = '"' + data + '"'
+
+                self.is_constant = True
+                self.constant_data = data
+                return
+
+        self.is_constant = False
+        self.constant_data = None
 
     def __parse(self, field: dict):
         self.name = field["name"]
@@ -48,36 +68,25 @@ class Field:
             field["types"], self.required, self.description)
         self.imports = self.imports.union(imports)
 
+        self.__parse_constant_data()
+
     def to_java_code(self, indent_spaces: int, type_classification: TypeClassification) -> list[str]:
-        def get_constant_if_matches() -> None | str:
-            regexs = [re.compile("must be \\w*$"),
-                      re.compile("always \"\\w*\"$")]
-            for regex in regexs:
-                match = regex.findall(self.description)
-                if match:
-                    data: str = match[0].split(" ")[-1]
-                    if not data.startswith('"'):
-                        data = '"' + data + '"'
-                    return f"{indent}public static final {self.type_} {self.name.upper()} = {data};\n"
-            return None
-
         indent = " " * indent_spaces
-        lines = [
-            f"{indent}/** {self.description} */\n"
-        ]
 
-        is_constant = False
-        if type_classification == TypeClassification.DataType:
-            constant_line = get_constant_if_matches()
-            if constant_line is not None:
-                lines.insert(0, constant_line)
-                is_constant = True
+        lines = []
+        if self.is_constant and type_classification == TypeClassification.DataType:
+            lines = [
+                f"{indent}public static final {self.type_} {self.name.upper()} = {self.constant_data};\n",
+                EMPTY_LINE,
+            ]
+
+        lines.append(f"{indent}/** {self.description} */\n")
 
         for annotation in self.annotations:
             lines.append(f"{indent}{annotation}\n")
 
         field_line = f"{indent}public "
-        if is_constant:
+        if self.is_constant:
             field_line += f" final {self.type_} {self.camel_cased_name} = {self.name.upper()};\n"
         else:
             field_line += f"{self.type_} {self.camel_cased_name};\n"
