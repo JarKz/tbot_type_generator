@@ -6,7 +6,7 @@ from generators.typegen import TypeClassification
 from generators.helpers import to_pascal_case
 from writer.code_writer import CodeWriter
 
-SPECS_PATH = "https://github.com/PaulSonOfLars/telegram-bot-api-spec/blob/main/api.json"
+SPECS_PATH = "https://raw.githubusercontent.com/PaulSonOfLars/telegram-bot-api-spec/main/api.json"
 IGNORE_TYPES = [
     "InputFile"
 ]
@@ -18,9 +18,7 @@ def download_specs(output_file: str):
         raise Exception("Can't download Telegram API specs!")
 
     with open(output_file, "w") as file:
-        lines = response.json()["payload"]["blob"]["rawLines"]
-        lines = map(lambda x: x + "\n", lines)
-        file.writelines(lines)
+        file.write(response.text)
 
 
 def add_datatypes(writer: CodeWriter, specs: dict):
